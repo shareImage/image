@@ -47,7 +47,7 @@
 
 ## 原理解析
 
-如果tcp发送buffer也就是SO_SNDBUF只有16K的话，这些包很快都发出去了，但是这16K的buffer不能立即释放出来填新的内容进去，因为tcp要保证可靠，万一中间丢包了呢。只有等到这16K中的某些包ack了，才会填充一些新包进来然后继续发出去。由于这里rt基本是20ms，也就是16K发送完毕后，等了20ms才收到一些ack，这20ms应用、内核什么都不能做，所以就是如前面第二个图中的大概20ms的等待平台。这块请参考[这篇文章](https://www.atatech.org/articles/79660)
+如果tcp发送buffer也就是SO_SNDBUF只有16K的话，这些包很快都发出去了，但是这16K的buffer不能立即释放出来填新的内容进去，因为tcp要保证可靠，万一中间丢包了呢。只有等到这16K中的某些包ack了，才会填充一些新包进来然后继续发出去。由于这里rt基本是20ms，也就是16K发送完毕后，等了20ms才收到一些ack，这20ms应用、内核什么都不能做，所以就是如前面第二个图中的大概20ms的等待平台。这块请参考[这篇文章][7]
 
 比如下图，wmem大小是8，发出1-8后，buffer不能释放，等到收到ack1-4后，释放1-4，buffer也就是释放了一半，这一半可以填充新的发送数据进来了。 上面的问题在于ack花了很久，导致buffer一直不能释放。
 
@@ -371,7 +371,7 @@ tcp ESTAB 0 0 10.0.186.140:3306 10.0.186.70:26546 skmem:(r0,rb65536,t0,tb131072,
 
 ![image.png](https://ata2-img.cn-hangzhou.oss-pub.aliyun-inc.com/d385a7dad76ec4031dfb6c096bca434b.png)
 
-（图片[来自](https://www.atatech.org/articles/9032)）
+（图片[来自][5]）
 
 ## 用tc构造延时和带宽限制的模拟重现环境
 
@@ -504,29 +504,69 @@ tcp ESTAB 0 20480 127.0.0.1:3306 127.0.0.1:7226 skmem:(r0,rb16384,t0,tb32768,f17
 
 [用stap从内核角度来分析buffer、rt和速度](https://blog.csdn.net/dog250/article/details/113020804)
 
-[经典的 nagle 和 dalay ack对性能的影响 就是要你懂 TCP-- 最经典的TCP性能问题](https://www.atatech.org/articles/80292)
+[经典的 nagle 和 dalay ack对性能的影响 就是要你懂 TCP-- 最经典的TCP性能问题][23]
 
-[关于TCP 半连接队列和全连接队列](https://www.atatech.org/articles/78858)
+[关于TCP 半连接队列和全连接队列][24]
 
-[MSS和MTU导致的悲剧](https://www.atatech.org/articles/60633)
+[MSS和MTU导致的悲剧][25]
 
-[双11通过网络优化提升10倍性能](https://www.atatech.org/articles/73174)
+[双11通过网络优化提升10倍性能][26]
 
-[就是要你懂TCP的握手和挥手](https://www.atatech.org/articles/79660)
+[就是要你懂TCP的握手和挥手][7]
 
-[高性能网络编程7--tcp连接的内存使用](https://www.atatech.org/articles/13203)
+[高性能网络编程7--tcp连接的内存使用][27]
 
-[The story of one latency spike](https://blog.cloudflare.com/the-story-of-one-latency-spike/)
+[The story of one latency spike][22]
 
-[What is rcv_space in the 'ss --info' output, and why it's value is larger than net.core.rmem_max](https://access.redhat.com/discussions/782343)
+[What is rcv_space in the 'ss --info' output, and why it's value is larger than net.core.rmem_max][28]
 
 
 
 Reference:
 
-- 7 : [https://www.atatech.org/articles/79660](https://www.atatech.org/articles/79660)
+- 1 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1558603861745-190dadd2-cff2-49c9-8bc3-5856fdfb2d44.png#align=left&display=inline&height=627&originHeight=627&originWidth=1251&size=0&status=done&width=1251](https://cdn.nlark.com/yuque/0/2019/png/162611/1558603861745-190dadd2-cff2-49c9-8bc3-5856fdfb2d44.png#align=left&display=inline&height=627&originHeight=627&originWidth=1251&size=0&status=done&width=1251)
+
+- 2 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1558603861610-e9b14af0-2400-4207-8bec-dfc96430ca58.png#align=left&display=inline&height=591&originHeight=591&originWidth=508&size=0&status=done&width=508](https://cdn.nlark.com/yuque/0/2019/png/162611/1558603861610-e9b14af0-2400-4207-8bec-dfc96430ca58.png#align=left&display=inline&height=591&originHeight=591&originWidth=508&size=0&status=done&width=508)
+
+- 3 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1558603861781-2e236663-2909-44eb-84a3-82ddf5f3af9d.png#align=left&display=inline&height=755&originHeight=755&originWidth=1285&size=0&status=done&width=1285](https://cdn.nlark.com/yuque/0/2019/png/162611/1558603861781-2e236663-2909-44eb-84a3-82ddf5f3af9d.png#align=left&display=inline&height=755&originHeight=755&originWidth=1285&size=0&status=done&width=1285)
+
+- 4 : [https://cdn.nlark.com/yuque/0/2019/jpeg/162611/1558603861602-0133aea1-66d2-4365-90ec-25fab36ea12e.jpeg#align=left&display=inline&height=590&originHeight=590&originWidth=632&size=0&status=done&width=632](https://cdn.nlark.com/yuque/0/2019/jpeg/162611/1558603861602-0133aea1-66d2-4365-90ec-25fab36ea12e.jpeg#align=left&display=inline&height=590&originHeight=590&originWidth=632&size=0&status=done&width=632)
 
 - 5 : [https://www.atatech.org/articles/9032](https://www.atatech.org/articles/9032)
+
+- 6 : [https://cdn.nlark.com/yuque/0/2019/jpeg/162611/1558603861618-604cd640-2003-4672-84de-a7865ed7cc94.jpeg#align=left&display=inline&height=741&originHeight=741&originWidth=805&size=0&status=done&width=805](https://cdn.nlark.com/yuque/0/2019/jpeg/162611/1558603861618-604cd640-2003-4672-84de-a7865ed7cc94.jpeg#align=left&display=inline&height=741&originHeight=741&originWidth=805&size=0&status=done&width=805)
+
+- 7 : [https://www.atatech.org/articles/79660](https://www.atatech.org/articles/79660)
+
+- 8 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1558603861595-39197d54-4e04-4a61-8687-f549bdaa883b.png#align=left&display=inline&height=855&originHeight=855&originWidth=1395&size=0&status=done&width=1395](https://cdn.nlark.com/yuque/0/2019/png/162611/1558603861595-39197d54-4e04-4a61-8687-f549bdaa883b.png#align=left&display=inline&height=855&originHeight=855&originWidth=1395&size=0&status=done&width=1395)
+
+- 9 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1559025761962-cf422801-1d67-4665-a12e-8419ffb1e27a.png#align=left&display=inline&height=447&name=image.png&originHeight=559&originWidth=1367&size=137942&status=done&width=1093.6](https://cdn.nlark.com/yuque/0/2019/png/162611/1559025761962-cf422801-1d67-4665-a12e-8419ffb1e27a.png#align=left&display=inline&height=447&name=image.png&originHeight=559&originWidth=1367&size=137942&status=done&width=1093.6)
+
+- 10 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1559025983487-bf6bde7b-6cb1-4d18-b0a0-ea63ddf538e4.png#align=left&display=inline&height=421&name=image.png&originHeight=526&originWidth=435&size=11128&status=done&width=348](https://cdn.nlark.com/yuque/0/2019/png/162611/1559025983487-bf6bde7b-6cb1-4d18-b0a0-ea63ddf538e4.png#align=left&display=inline&height=421&name=image.png&originHeight=526&originWidth=435&size=11128&status=done&width=348)
+
+- 11 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1559026080137-38bd9712-eb07-4fc1-82e7-649cde233cfd.png#align=left&display=inline&height=474&name=image.png&originHeight=593&originWidth=389&size=22197&status=done&width=311.2](https://cdn.nlark.com/yuque/0/2019/png/162611/1559026080137-38bd9712-eb07-4fc1-82e7-649cde233cfd.png#align=left&display=inline&height=474&name=image.png&originHeight=593&originWidth=389&size=22197&status=done&width=311.2)
+
+- 12 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1559027684431-4b47d1be-6bf9-4a5a-b041-bf675ff36f4a.png#align=left&display=inline&height=594&name=image.png&originHeight=743&originWidth=1178&size=54428&status=done&width=942.4](https://cdn.nlark.com/yuque/0/2019/png/162611/1559027684431-4b47d1be-6bf9-4a5a-b041-bf675ff36f4a.png#align=left&display=inline&height=594&name=image.png&originHeight=743&originWidth=1178&size=54428&status=done&width=942.4)
+
+- 13 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1559026228698-b5749b94-6083-451a-ac1e-a95150d93b82.png#align=left&display=inline&height=440&name=image.png&originHeight=550&originWidth=1176&size=122888&status=done&width=940.8](https://cdn.nlark.com/yuque/0/2019/png/162611/1559026228698-b5749b94-6083-451a-ac1e-a95150d93b82.png#align=left&display=inline&height=440&name=image.png&originHeight=550&originWidth=1176&size=122888&status=done&width=940.8)
+
+- 14 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1559027225308-61d25bd1-9270-4762-b0cf-721a34d8689a.png#align=left&display=inline&height=646&name=image.png&originHeight=807&originWidth=430&size=30452&status=done&width=344](https://cdn.nlark.com/yuque/0/2019/png/162611/1559027225308-61d25bd1-9270-4762-b0cf-721a34d8689a.png#align=left&display=inline&height=646&name=image.png&originHeight=807&originWidth=430&size=30452&status=done&width=344)
+
+- 15 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1559027854127-2049facb-7708-49b5-a165-141549cc7e6b.png#align=left&display=inline&height=636&name=image.png&originHeight=795&originWidth=474&size=20034&status=done&width=379.2](https://cdn.nlark.com/yuque/0/2019/png/162611/1559027854127-2049facb-7708-49b5-a165-141549cc7e6b.png#align=left&display=inline&height=636&name=image.png&originHeight=795&originWidth=474&size=20034&status=done&width=379.2)
+
+- 16 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1559028098375-d1e8ab50-d3c0-47c3-8326-53afe8ba0116.png#align=left&display=inline&height=681&name=image.png&originHeight=851&originWidth=748&size=42765&status=done&width=598.4](https://cdn.nlark.com/yuque/0/2019/png/162611/1559028098375-d1e8ab50-d3c0-47c3-8326-53afe8ba0116.png#align=left&display=inline&height=681&name=image.png&originHeight=851&originWidth=748&size=42765&status=done&width=598.4)
+
+- 17 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1558922856836-92aca189-2b5c-46b9-ae06-cbb0db50baf4.png#align=left&display=inline&height=522&name=image.png&originHeight=653&originWidth=1007&size=48934&status=done&width=805.6](https://cdn.nlark.com/yuque/0/2019/png/162611/1558922856836-92aca189-2b5c-46b9-ae06-cbb0db50baf4.png#align=left&display=inline&height=522&name=image.png&originHeight=653&originWidth=1007&size=48934&status=done&width=805.6)
+
+- 18 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1558923047361-de371658-b656-4566-9e20-5958919ee1fe.png#align=left&display=inline&height=422&name=image.png&originHeight=528&originWidth=982&size=112809&status=done&width=785.6](https://cdn.nlark.com/yuque/0/2019/png/162611/1558923047361-de371658-b656-4566-9e20-5958919ee1fe.png#align=left&display=inline&height=422&name=image.png&originHeight=528&originWidth=982&size=112809&status=done&width=785.6)
+
+- 19 : [https://cdn.nlark.com/yuque/0/2019/gif/162611/1559030833230-72b44e6d-5c3c-413b-91ff-26074bd2bdbe.gif#align=left&display=inline&height=144&originHeight=103&originWidth=289&size=0&status=done&width=404](https://cdn.nlark.com/yuque/0/2019/gif/162611/1559030833230-72b44e6d-5c3c-413b-91ff-26074bd2bdbe.gif#align=left&display=inline&height=144&originHeight=103&originWidth=289&size=0&status=done&width=404)
+
+- 20 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1559043502992-97c4c823-8cd1-4ae7-9883-203e553604ff.png#align=left&display=inline&height=720&name=image.png&originHeight=900&originWidth=958&size=48144&status=done&width=766.4](https://cdn.nlark.com/yuque/0/2019/png/162611/1559043502992-97c4c823-8cd1-4ae7-9883-203e553604ff.png#align=left&display=inline&height=720&name=image.png&originHeight=900&originWidth=958&size=48144&status=done&width=766.4)
+
+- 21 : [https://cdn.nlark.com/yuque/0/2019/png/162611/1559097931609-28c0fc94-09ca-4564-8f47-432f9b5e2c5b.png#align=left&display=inline&height=682&name=image.png&originHeight=853&originWidth=760&size=41904&status=done&width=608](https://cdn.nlark.com/yuque/0/2019/png/162611/1559097931609-28c0fc94-09ca-4564-8f47-432f9b5e2c5b.png#align=left&display=inline&height=682&name=image.png&originHeight=853&originWidth=760&size=41904&status=done&width=608)
+
+- 22 : [https://blog.cloudflare.com/the-story-of-one-latency-spike/](https://blog.cloudflare.com/the-story-of-one-latency-spike/)
 
 - 23 : [https://www.atatech.org/articles/80292](https://www.atatech.org/articles/80292)
 
@@ -538,17 +578,34 @@ Reference:
 
 - 27 : [https://www.atatech.org/articles/13203](https://www.atatech.org/articles/13203)
 
-- 22 : [https://blog.cloudflare.com/the-story-of-one-latency-spike/](https://blog.cloudflare.com/the-story-of-one-latency-spike/)
-
 - 28 : [https://access.redhat.com/discussions/782343](https://access.redhat.com/discussions/782343)
 
 
-[7]:  https://www.atatech.org/articles/79660
+[1]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1558603861745-190dadd2-cff2-49c9-8bc3-5856fdfb2d44.png#align=left&display=inline&height=627&originHeight=627&originWidth=1251&size=0&status=done&width=1251
+[2]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1558603861610-e9b14af0-2400-4207-8bec-dfc96430ca58.png#align=left&display=inline&height=591&originHeight=591&originWidth=508&size=0&status=done&width=508
+[3]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1558603861781-2e236663-2909-44eb-84a3-82ddf5f3af9d.png#align=left&display=inline&height=755&originHeight=755&originWidth=1285&size=0&status=done&width=1285
+[4]:  https://cdn.nlark.com/yuque/0/2019/jpeg/162611/1558603861602-0133aea1-66d2-4365-90ec-25fab36ea12e.jpeg#align=left&display=inline&height=590&originHeight=590&originWidth=632&size=0&status=done&width=632
 [5]:  https://www.atatech.org/articles/9032
+[6]:  https://cdn.nlark.com/yuque/0/2019/jpeg/162611/1558603861618-604cd640-2003-4672-84de-a7865ed7cc94.jpeg#align=left&display=inline&height=741&originHeight=741&originWidth=805&size=0&status=done&width=805
+[7]:  https://www.atatech.org/articles/79660
+[8]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1558603861595-39197d54-4e04-4a61-8687-f549bdaa883b.png#align=left&display=inline&height=855&originHeight=855&originWidth=1395&size=0&status=done&width=1395
+[9]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1559025761962-cf422801-1d67-4665-a12e-8419ffb1e27a.png#align=left&display=inline&height=447&name=image.png&originHeight=559&originWidth=1367&size=137942&status=done&width=1093.6 "image.png"
+[10]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1559025983487-bf6bde7b-6cb1-4d18-b0a0-ea63ddf538e4.png#align=left&display=inline&height=421&name=image.png&originHeight=526&originWidth=435&size=11128&status=done&width=348 "image.png"
+[11]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1559026080137-38bd9712-eb07-4fc1-82e7-649cde233cfd.png#align=left&display=inline&height=474&name=image.png&originHeight=593&originWidth=389&size=22197&status=done&width=311.2 "image.png"
+[12]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1559027684431-4b47d1be-6bf9-4a5a-b041-bf675ff36f4a.png#align=left&display=inline&height=594&name=image.png&originHeight=743&originWidth=1178&size=54428&status=done&width=942.4 "image.png"
+[13]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1559026228698-b5749b94-6083-451a-ac1e-a95150d93b82.png#align=left&display=inline&height=440&name=image.png&originHeight=550&originWidth=1176&size=122888&status=done&width=940.8 "image.png"
+[14]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1559027225308-61d25bd1-9270-4762-b0cf-721a34d8689a.png#align=left&display=inline&height=646&name=image.png&originHeight=807&originWidth=430&size=30452&status=done&width=344 "image.png"
+[15]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1559027854127-2049facb-7708-49b5-a165-141549cc7e6b.png#align=left&display=inline&height=636&name=image.png&originHeight=795&originWidth=474&size=20034&status=done&width=379.2 "image.png"
+[16]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1559028098375-d1e8ab50-d3c0-47c3-8326-53afe8ba0116.png#align=left&display=inline&height=681&name=image.png&originHeight=851&originWidth=748&size=42765&status=done&width=598.4 "image.png"
+[17]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1558922856836-92aca189-2b5c-46b9-ae06-cbb0db50baf4.png#align=left&display=inline&height=522&name=image.png&originHeight=653&originWidth=1007&size=48934&status=done&width=805.6 "image.png"
+[18]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1558923047361-de371658-b656-4566-9e20-5958919ee1fe.png#align=left&display=inline&height=422&name=image.png&originHeight=528&originWidth=982&size=112809&status=done&width=785.6 "image.png"
+[19]:  https://cdn.nlark.com/yuque/0/2019/gif/162611/1559030833230-72b44e6d-5c3c-413b-91ff-26074bd2bdbe.gif#align=left&display=inline&height=144&originHeight=103&originWidth=289&size=0&status=done&width=404
+[20]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1559043502992-97c4c823-8cd1-4ae7-9883-203e553604ff.png#align=left&display=inline&height=720&name=image.png&originHeight=900&originWidth=958&size=48144&status=done&width=766.4 "image.png"
+[21]:  https://cdn.nlark.com/yuque/0/2019/png/162611/1559097931609-28c0fc94-09ca-4564-8f47-432f9b5e2c5b.png#align=left&display=inline&height=682&name=image.png&originHeight=853&originWidth=760&size=41904&status=done&width=608 "image.png"
+[22]:  https://blog.cloudflare.com/the-story-of-one-latency-spike/
 [23]:  https://www.atatech.org/articles/80292
 [24]:  https://www.atatech.org/articles/78858
 [25]:  https://www.atatech.org/articles/60633
 [26]:  https://www.atatech.org/articles/73174
 [27]:  https://www.atatech.org/articles/13203
-[22]:  https://blog.cloudflare.com/the-story-of-one-latency-spike/
 [28]:  https://access.redhat.com/discussions/782343
