@@ -5,7 +5,7 @@
 
 DRAM 和 NAND Flash 在 2019 年的供应商市场份额:
 
-![img](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/5de1be14bc3680eebace3236110bae58.png)
+![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/5de1be14bc3680eebace3236110bae58.png)
 
 ## SRAM（Static Random-Access Memory，静态随机存取存储器）的芯片
 
@@ -27,7 +27,7 @@ L3用的还是SRAM，但是在考虑换成STT-MRAM，这样容量更大。
 
 DRAM 的一个比特，只需要一个晶体管和一个电容就能存储。所以，DRAM 在同样的物理空间下，能够存储的数据也就更多，也就是存储的"密度"更大。DRAM 的数据访问电路和刷新电路都比 SRAM 更复杂，所以访问延时也就更长。
 
-![img](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/d39b0f2b3962d646133d450541fb75a6.png)
+![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/d39b0f2b3962d646133d450541fb75a6.png)
 
 SRAM是比**DRAM**更为昂贵，但更为快速、非常低功耗（特别是在空闲状态）。 因此**SRAM**首选用于带宽要求高，或者功耗要求低，或者二者兼而有之。 **SRAM**比起**DRAM**更为容易控制，也更是随机访问。 由于复杂的内部结构，**SRAM**比**DRAM**的占用面积更大，因而不适合用于更高储存密度低成本的应用，如PC内存。
 
@@ -35,21 +35,21 @@ SRAM是比**DRAM**更为昂贵，但更为快速、非常低功耗（特别是�
 
 [简单说DRAM只有一个晶体管和一个电容，SRAM就复杂多了，需要6个晶体管](https://mp.weixin.qq.com/s?__biz=MzI2NDYwMDAxOQ==&amp;mid=2247483772&amp;idx=1&amp;sn=d7c188247b9851f7985676e2f9dd9a0e&amp;chksm=eaab61c0dddce8d62bdb521de1ada13142264882feae1ff06d6dcd81430a0063377e4b34cedb&amp;scene=178&amp;cur_album_id=1368835510680272898#rd)
 
-![What is the difference between SRAM and DRAM](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/image-20210603114550646.png)
+![What is the difference between SRAM and DRAM](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/image-20210603114550646.png)
 
 详细比较：
 
-![Difference Between SRAM and DRAM - YouTube](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/maxresdefault.jpg)
+![Difference Between SRAM and DRAM - YouTube](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/maxresdefault.jpg)
 
 ## Cache
 
 [各级cache的Latency](http://www.webstersystems.co.uk/threads.htm)：
 
-![Cycle times](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/cycle_times.jpg)
+![Cycle times](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/cycle_times.jpg)
 
 [推荐从这里看延时，拖动时间轴可以看到每一年的变化](https://colin-scott.github.io/personal_website/research/interactive_latency.html)
 
-![image-20210613123006681](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/image-20210613123006681.png)
+![image-20210613123006681](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/image-20210613123006681.png)
 
 ## 双通道
 
@@ -78,13 +78,13 @@ SRAM是比**DRAM**更为昂贵，但更为快速、非常低功耗（特别是�
 
 如下图中的红框就是SMB，篮筐是内存插槽，一个CPU对应两个这样的板子，内存条插在一个叫做SMB的芯片后面
 
-![image-20210602114931825](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/image-20210602114931825.png)
+![image-20210602114931825](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/image-20210602114931825.png)
 
 这个板子叫做Memory Riser，红框的部分就是SMB，有两个。蓝色的部分是内存插槽。大家数一下，可以看到一个SMB后面可以插6根DIMM，分别属于两个Channel，上图只有两个SMB，另外两个在另外一个Memory Riser上，一个CPU可以接两个Memory Riser
 
 ## 内存和cache的latency对比
 
-![latency](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/latency.png)
+![latency](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/latency.png)
 
 ## Intel CPU内存性能测试
 
@@ -295,25 +295,25 @@ Flags:                 fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca 
 
 ## cpu到内存的带宽
 
-![image-20210714202151597](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/image-20210714202151597.png)
+![image-20210714202151597](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/image-20210714202151597.png)
 
 ## DDR bandwidth and latency
 
-![image-20210714203416058](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/image-20210714203416058.png)
+![image-20210714203416058](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/image-20210714203416058.png)
 
-![image-20210714203345953](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/image-20210714203345953.png)
+![image-20210714203345953](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/image-20210714203345953.png)
 
 ## 存储芯片能力
 
-![img](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/89850a9cfdbcf6422843efbf395839eb.jpg)
+![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/89850a9cfdbcf6422843efbf395839eb.jpg)
 
-![img](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/c74bfce9-dd44-40e2-a6ff-4ac5a7932c3d.png)
+![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/c74bfce9-dd44-40e2-a6ff-4ac5a7932c3d.png)
 
 ## 多 Die 异构封装
 
 下面 Intel 的最新 7nm GPU 的芯片，把不同功能多个小硅片封装在一起。这里是 16 个 CPU Die、8 个 Cache Die、8 个 HBM Die、2 个 IO Die，还有几个未标明功能的填充或者测试用 Die，封装成一个 GPU 的芯片。
 
-![img](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/2e37cc0cc5b997fb3f48284525ba68c1.jpeg)
+![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/2e37cc0cc5b997fb3f48284525ba68c1.jpeg)
 
 未来 SoC 设计，会更重视功能分区，把追求最新工艺的逻辑部分，追求高密度的存储芯片，和在新工艺上收益不显著的模拟部分，分开设计，然后再封装在一起，取得最佳的设计性价比。看看最新一代的 Intel 和 AMD 的云端大芯片，都是多 Die（裸片）异构封装了
 
@@ -342,7 +342,7 @@ File.read(fileDesc, buf, len);
 Socket.send(socket, buf, len);
 ```
 
-![img](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/e0e85505e793e804e3b396fc50871cd5.jpg)
+![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/e0e85505e793e804e3b396fc50871cd5.jpg)
 
 类似零拷贝和bypass
 
@@ -355,7 +355,7 @@ public long transferFrom(FileChannel fileChannel, long position, long count) thr
 }
 ```
 
-![img](https://cdn.jsdelivr.net/gh/plantegg/plantegg.github.io@_md2zhihu_blog_cee8f3b4/CPU和内存/596042d111ad9b871045d970a10464ab.jpg)
+![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_image_8ffba7ac/CPU和内存/596042d111ad9b871045d970a10464ab.jpg)
 
 ## Grub定制内存大小
 
