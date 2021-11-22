@@ -13,6 +13,10 @@
 
 所以客户怀疑Tomcat有问题或者Tomcat上的代码写得有问题导致了这个问题，需要排查和解决掉。
 
+
+
+接下来我们会先分析这个问题出现的原因，然后会分析这类问题的共性同时拓展到其它场景下的类似问题。
+
 ## Tomcat上抓包分析
 
 ### 慢的连接
@@ -173,7 +177,7 @@ public class MySQLPingPacket implements CommandPacket {
 
 ## 案例：show stats导致集群3406监控卡死
 
-## 现象
+### 现象
 
 DRDS 3406端口卡死,无法连接上，监控没有数据（需要从3406采集）、DDL操作、show processlist、show stats操作卡死（需要跟整个集群的3406端口同步）。
 
