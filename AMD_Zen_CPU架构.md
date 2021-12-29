@@ -845,7 +845,7 @@ sysbench --test='/usr/share/doc/sysbench/tests/db/select.lua' --oltp_tables_coun
 </tr>
 </table>
 
--   [^说明]: test comment
+-   abc [^说明]:test
 
 #### Mysqld 二进制代码所在 page cache带来的性能影响
 
