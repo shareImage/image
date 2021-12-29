@@ -845,6 +845,8 @@ sysbench --test='/usr/share/doc/sysbench/tests/db/select.lua' --oltp_tables_coun
 </tr>
 </table>
 
+-   麒麟OS下CPU很难跑满，大致能跑到90%-95%左右，麒麟上装的社区版MySQL-5.7.29；飞腾要特别注意mysqld所在socket，同时以上飞腾数据都是走--socket压测锁的，32core走网络压测QPS为：99496（15%的网络损耗）
+
 #### Mysqld 二进制代码所在 page cache带来的性能影响
 
 如果是飞腾跨socket影响很大，mysqld二进制跨socket性能会下降30%以上
