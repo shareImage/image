@@ -373,6 +373,97 @@ brctl addif cni0 veth1 veth2 veth3  //往cni bridge添加多个容器peer 网卡
 
 手工配置实现就是vxlan的超级精简版，略！
 
+## [netns 操作](https://mp.weixin.qq.com/s/lscMpc5BWAEzjgYw6H0wBw)
+
+以下case创建一个名为 ren 的netns，然后在里面增加一对虚拟网卡veth1 veth1_p,  veth1放置在ren里面，veth1_p 放在物理机上，给他们配置上ip并up就能通了。
+
+```shell
+ 1004  [2021-10-27 10:49:08] ip netns add ren
+ 1005  [2021-10-27 10:49:12] ip netns show
+ 1006  [2021-10-27 10:49:22] ip netns exec ren route   //为空
+ 1007  [2021-10-27 10:49:29] ip netns exec ren iptables -L
+ 1008  [2021-10-27 10:49:55] ip link add veth1 type veth peer name veth1_p //此时宿主机上能看到这两块网卡
+ 1009  [2021-10-27 10:50:07] ip link set veth1 netns ren //将veth1从宿主机默认网络空间挪到ren中，宿主机中看不到veth1了
+ 1010  [2021-10-27 10:50:18] ip netns exec ren route  
+ 1011  [2021-10-27 10:50:25] ip netns exec ren iptables -L
+ 1012  [2021-10-27 10:50:39] ifconfig
+ 1013  [2021-10-27 10:50:51] ip link list
+ 1014  [2021-10-27 10:51:29] ip netns exec ren ip link list
+ 1017  [2021-10-27 10:53:27] ip netns exec ren ip addr add 172.19.0.100/24 dev veth1 
+ 1018  [2021-10-27 10:53:31] ip netns exec ren ip link list
+ 1019  [2021-10-27 10:53:39] ip netns exec ren ifconfig
+ 1020  [2021-10-27 10:53:42] ip netns exec ren ifconfig -a
+ 1021  [2021-10-27 10:54:13] ip netns exec ren ip link set dev veth1 up
+ 1022  [2021-10-27 10:54:16] ip netns exec ren ifconfig
+ 1023  [2021-10-27 10:54:22] ping 172.19.0.100
+ 1024  [2021-10-27 10:54:35] ifconfig -a
+ 1025  [2021-10-27 10:55:03] ip netns exec ren ip addr add 172.19.0.101/24 dev veth1_p
+ 1026  [2021-10-27 10:55:10] ip addr add 172.19.0.101/24 dev veth1_p
+ 1027  [2021-10-27 10:55:16] ifconfig veth1_p
+ 1028  [2021-10-27 10:55:30] ip link set dev veth1_p up
+ 1029  [2021-10-27 10:55:32] ifconfig veth1_p
+ 1030  [2021-10-27 10:55:38] ping 172.19.0.101
+ 1031  [2021-10-27 10:55:43] ping 172.19.0.100
+ 1032  [2021-10-27 10:55:53] ip link set dev veth1_p down
+ 1033  [2021-10-27 10:55:54] ping 172.19.0.100
+ 1034  [2021-10-27 10:55:58] ping 172.19.0.101
+ 1035  [2021-10-27 10:56:08] ifconfig veth1_p
+ 1036  [2021-10-27 10:56:32] ping 172.19.0.101
+ 1037  [2021-10-27 10:57:04] ip netns exec ren route
+ 1038  [2021-10-27 10:57:52] ip netns exec ren ping 172.19.0.101
+ 1039  [2021-10-27 10:57:58] ip link set dev veth1_p up
+ 1040  [2021-10-27 10:57:59] ip netns exec ren ping 172.19.0.101
+ 1041  [2021-10-27 10:58:06] ip netns exec ren ping 172.19.0.100
+ 1042  [2021-10-27 10:58:14] ip netns exec ren ifconfig
+ 1043  [2021-10-27 10:58:19] ip netns exec ren route
+ 1044  [2021-10-27 10:58:26] ip netns exec ren ping 172.19.0.100 -I veth1
+ 1045  [2021-10-27 10:58:58] ifconfig veth1_p
+ 1046  [2021-10-27 10:59:10] ping 172.19.0.100
+ 1047  [2021-10-27 10:59:26] ip netns exec ren ping 172.19.0.101 -I veth1
+
+ 把网卡加入到docker0的bridge下
+ 1160  [2021-10-27 12:17:37] brctl show
+ 1161  [2021-10-27 12:18:05] ip link set dev veth3_p master docker0
+ 1162  [2021-10-27 12:18:09] ip link set dev veth1_p master docker0
+ 1163  [2021-10-27 12:18:13] ip link set dev veth2 master docker0
+ 1164  [2021-10-27 12:18:15] brctl show
+
+brctl showmacs br0
+brctl show cni0
+brctl addif cni0 veth1 veth2 veth3  //往cni bridge添加多个容器peer 网卡
+```
+
+Linux 上存在一个默认的网络命名空间，Linux 中的 1 号进程初始使用该默认空间。Linux 上其它所有进程都是由 1 号进程派生出来的，在派生 clone 的时候如果没有额外特别指定，所有的进程都将共享这个默认网络空间。
+
+所有的网络设备刚创建出来都是在宿主机默认网络空间下的。可以通过 `ip link set 设备名 netns 网络空间名` 将设备移动到另外一个空间里去，socket也是归属在某一个网络命名空间下的，由创建socket进程所在的netns来决定socket所在的netns
+
+```c
+//file: net/socket.c
+int sock_create(int family, int type, int protocol, struct socket **res)
+{
+ return __sock_create(current->nsproxy->net_ns, family, type, protocol, res, 0);
+}
+
+//file: include/net/sock.h
+static inline
+void sock_net_set(struct sock *sk, struct net *net)
+{
+ write_pnet(&sk->sk_net, net);
+}
+```
+
+内核提供了三种操作命名空间的方式，分别是 clone、setns 和 unshare。ip netns add 使用的是 unshare，原理和 clone 是类似的。
+
+![Image](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/kubernetes_Flannel网络剖析/640-5304524.)
+
+每个 net 下都包含了自己的路由表、iptable 以及内核参数配置等等
+
+## 总结
+
+通过无论是对flannel还是calico的学习，不管是使用vxlan还是host-gw发现这些所谓的overlay网络不过是披着一层udp的皮而已，只要我们对ip route/mac地址足够了解，这些新技术剖丁解牛下来仍然逃不过RFC1180描述的几个基本逻辑（基础知识的力量）
+
+这一切硬核的基础知识无比简单，你要你多看看我这篇[《就是要你懂网络--一个网络包的旅程》](https://plantegg.github.io/2019/05/15/%E5%B0%B1%E6%98%AF%E8%A6%81%E4%BD%A0%E6%87%82%E7%BD%91%E7%BB%9C--%E4%B8%80%E4%B8%AA%E7%BD%91%E7%BB%9C%E5%8C%85%E7%9A%84%E6%97%85%E7%A8%8B/)
+
 ## 参考资料
 
 https://morven.life/notes/networking-3-ipip/
@@ -382,6 +473,8 @@ https://www.cnblogs.com/bakari/p/10564347.html
 https://www.cnblogs.com/goldsunshine/p/10701242.html
 
 [手工拉起flannel网络](https://docker-k8s-lab.readthedocs.io/en/latest/docker/docker-flannel.html)
+
+[《就是要你懂网络--一个网络包的旅程》](https://plantegg.github.io/2019/05/15/%E5%B0%B1%E6%98%AF%E8%A6%81%E4%BD%A0%E6%87%82%E7%BD%91%E7%BB%9C--%E4%B8%80%E4%B8%AA%E7%BD%91%E7%BB%9C%E5%8C%85%E7%9A%84%E6%97%85%E7%A8%8B/)
 
 
 
