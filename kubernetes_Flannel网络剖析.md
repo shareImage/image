@@ -460,9 +460,7 @@ void sock_net_set(struct sock *sk, struct net *net)
 
 ## 总结
 
-通过无论是对flannel还是calico的学习，不管是使用vxlan还是host-gw发现这些所谓的overlay网络不过是披着一层udp的皮而已，只要我们对ip route/mac地址足够了解，这些新技术剖丁解牛下来仍然逃不过RFC1180描述的几个基本逻辑（基础知识的力量）
-
-这一切硬核的基础知识无比简单，你要你多看看我这篇[《就是要你懂网络--一个网络包的旅程》](https://plantegg.github.io/2019/05/15/%E5%B0%B1%E6%98%AF%E8%A6%81%E4%BD%A0%E6%87%82%E7%BD%91%E7%BB%9C--%E4%B8%80%E4%B8%AA%E7%BD%91%E7%BB%9C%E5%8C%85%E7%9A%84%E6%97%85%E7%A8%8B/)
+通过无论是对flannel还是calico的学习，不管是使用vxlan还是host-gw发现这些所谓的overlay网络不过是披着一层udp的皮而已，只要我们对ip route/mac地址足够了解，这些新技术剖析下来仍然逃不过 [RFC1180](https://datatracker.ietf.org/doc/html/rfc1180) 描述的几个最基础的知识点（基础知识的力量）的使用而已，这一切硬核的基础知识无比简单，只要你多看看我这篇旧文[《就是要你懂网络--一个网络包的旅程》](https://plantegg.github.io/2019/05/15/%E5%B0%B1%E6%98%AF%E8%A6%81%E4%BD%A0%E6%87%82%E7%BD%91%E7%BB%9C--%E4%B8%80%E4%B8%AA%E7%BD%91%E7%BB%9C%E5%8C%85%E7%9A%84%E6%97%85%E7%A8%8B/)
 
 ## 参考资料
 
