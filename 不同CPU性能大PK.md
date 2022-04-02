@@ -1,4 +1,3 @@
-
 # 不同CPU性能大PK
 
 ## 前言
@@ -12,7 +11,6 @@ IPC的说明：
 > IPC: insns per cycle  insn/cycles  也就是每个时钟周期能执行的指令数量，越大程序跑的越快
 > 
 > 程序的执行时间 = 指令数/(主频*IPC) //单核下，多核的话再除以核数
-
 
 ### Hygon 7280
 
@@ -286,12 +284,12 @@ Processor Information
     Core Enabled: 64
     Thread Count: 64
     Characteristics:
-    	64-bit capable
-    	Multi-Core
-    	Hardware Thread
-    	Execute Protection
-    	Enhanced Virtualization
-    	Power/Performance Control
+        64-bit capable
+        Multi-Core
+        Hardware Thread
+        Execute Protection
+        Enhanced Virtualization
+        Power/Performance Control
 ```
 
 ## 单核以及HT计算Prime性能比较
@@ -487,7 +485,7 @@ sysbench --test='/usr/share/doc/sysbench/tests/db/select.lua' --oltp_tables_coun
 </tr>
 </table>
 
--   麒麟OS下CPU很难跑满，大致能跑到90%-95%左右，麒麟上装的社区版MySQL-5.7.29；飞腾要特别注意mysqld所在socket，同时以上飞腾数据都是走--socket压测锁的，32core走网络压测QPS为：99496（15%的网络损耗）[^说明]
+- 麒麟OS下CPU很难跑满，大致能跑到90%-95%左右，麒麟上装的社区版MySQL-5.7.29；飞腾要特别注意mysqld所在socket，同时以上飞腾数据都是走--socket压测锁的，32core走网络压测QPS为：99496（15%的网络损耗）[^说明]
 
 ### Mysqld 二进制代码所在 page cache带来的性能影响
 
@@ -1119,7 +1117,6 @@ STREAM copy bandwidth: 6938.47 MB/sec
 
 > Die Interleaving 控制是否使能DIE交织。使能DIE交织能充分利用系统的DDR带宽，并尽量保证各DDR通道的带宽均衡，提升DDR的利用率
 
-
 ### hygon5280测试数据
 
 ```
@@ -1514,12 +1511,12 @@ LMbench 包含了 STREAM 带宽测试工具，可以用来测试可持续的内�
 
 ## 对比结论
 
--   AMD单核跑分数据比较好
--   MySQL 查询场景下Intel的性能好很多
--   xdb比社区版性能要好
--   MySQL8.0比5.7在多核锁竞争场景下性能要好
--   intel最好，AMD接近Intel，海光差的比较远但是又比鲲鹏好很多，飞腾最差，尤其是跨socket简直是灾难
--   麒麟OS性能也比CentOS略差一些
+- AMD单核跑分数据比较好
+- MySQL 查询场景下Intel的性能好很多
+- xdb比社区版性能要好
+- MySQL8.0比5.7在多核锁竞争场景下性能要好
+- intel最好，AMD接近Intel，海光差的比较远但是又比鲲鹏好很多，飞腾最差，尤其是跨socket简直是灾难
+- 麒麟OS性能也比CentOS略差一些
 
 整体来说AMD用领先了一代的工艺（7nm VS 14nm)，在MySQL查询场景中终于可以接近Intel了，但是海光、鲲鹏、飞腾还是不给力。
 
@@ -1543,7 +1540,4 @@ LMbench 包含了 STREAM 带宽测试工具，可以用来测试可持续的内�
 
 [lmbench测试要考虑cache等](https://blog.csdn.net/xuanjian_bjtu/article/details/107178226)
 
-
-
 Reference:
-
