@@ -19,9 +19,8 @@ client -> Tomcat -> LVS -> MySQL（32 个 MySQLD实例集群，每个实例8Core
 
 业务 SQL 如下是一个简单的select sum求和，这个 SQL在每个MySQL上都很快（有索引）
 
-```
+```SQL
 SELECT SUM(emp_arr_amt) FROM table_c WHERE INSUTYPE='310' AND Revs_Flag='Z' AND accrym='201910' AND emp_no='1050457';
-
 ```
 
 ## 监控指标说明
@@ -171,16 +170,16 @@ ut_delay(ulint delay)  //delay 是[0,innodb_spin_wait_delay)之间的一个随�
 ```
 
 UT_LOW_PRIORITY_CPU();
-  
+
             j = 0;
-  
+      
             for (i = 0; i < delay * 50; i++) {  //delay 放大50倍
                     j += i;
                     UT_RELAX_CPU();             //调用 CPU Pause
             }
-  
+      
             UT_RESUME_PRIORITY_CPU();
-  
+      
             return(j);
     }
 
