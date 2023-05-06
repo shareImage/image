@@ -376,54 +376,7 @@ tcp_max_tw_buckets: 在 TIME_WAIT 数量等于 tcp_max_tw_buckets 时，新的�
 > tcp_max_tw_buckets - INTEGER
 >    Maximal number of timewait sockets held by system simultaneously.If this number is exceeded time-wait socket is immediately destroyed and warning is printed. This limit exists only to prevent simple DoS attacks, you *must* not lower the limit artificially, but rather increase it (probably, after increasing installed memory), if network conditions require more than default value.
 
-
-## [SO_LINGER](https://notes.shichao.io/unp/ch7/)
-
-SO_LINGER选项**用来设置延迟关闭的时间，等待套接字发送缓冲区中的数据发送完成**。 没有设置该选项时，在调用close() 后，在发送完FIN后会立即进行一些清理工作并返回。 如果设置了SO_LINGER选项，并且等待时间为正值，则在清理之前会等待一段时间。
-
-如果把延时设置为 0  时，Socket就丢弃数据，并向对方发送一个 `RST` 来终止连接，因为走的是 RST 包，所以就不会有 `TIME_WAIT` 了。
-
-> This option specifies how the `close` function operates for a connection-oriented protocol (for TCP, but not for UDP). By default, `close` returns immediately, but ==if there is any data still remaining in the socket send buffer, the system will try to deliver the data to the peer==.
-
-
-SO_LINGER 有三种情况
-
-1.  l_onoff 为false（0）， 那么 l_linger 的值没有意义，socket主动调用close时会立即返回，操作系统会将残留在缓冲区中的数据发送到对端，并按照正常流程关闭(交换FIN-ACK），最后连接进入`TIME_WAIT`状态。**这是默认情况**
-1.  l_onoff 为true（非0），  l_linger 为0，主动调用close的一方也是立刻返回，但是这时TCP会丢弃发送缓冲中的数据，而且不是按照正常流程关闭连接（不发送FIN包），直接发送`RST`，连接不会进入 time_wait 状态，对端会收到 `java.net.SocketException: Connection reset`异常
-1.  l_onoff 为true（非0），  l_linger 也为非 0，这表示 `SO_LINGER`选项生效，并且超时时间大于零，这时调用close的线程被阻塞，TCP会发送缓冲区中的残留数据，这时有两种可能的情况：
-    -   数据发送完毕，收到对方的ACK，然后进行连接的正常关闭（交换FIN-ACK）
-    -   超时，未发送完成的数据被丢弃，连接发送`RST`进行非正常关闭
-
-```
-struct linger {
-  int   l_onoff;        /* 0=off, nonzero=on */
-  int   l_linger;       /* linger time, POSIX specifies units as seconds */
-};
-```
-
-### NIO下设置 SO_LINGER 的错误案例
-
-在使用NIO时，最好不设置`SO_LINGER`。比如Tomcat服务端接收到请求创建新连接时，做了这样的设置：
-
-```
-SocketChannel.setOption(SocketOption.SO_LINGER, 1000)
-```
-
-`SO_LINGER`的单位为`秒`！在网络环境比较好的时候，例如客户端、服务器都部署在同一个机房，close虽然会被阻塞，但时间极短可以忽略。但当网络环境不那么好时，例如存在丢包、较长的网络延迟，buffer中的数据一直无法发送成功，那么问题就出现了：`close会被阻塞较长的时间，从而直接或间接引起NIO的IO线程被阻塞`，服务器会不响应，不能处理accept、read、write等任何IO事件。也就是应用频繁出现挂起现象。解决方法就是删掉这个设置，close时立即返回，由操作系统接手后面的工作。
-
-这时会看到如下连接状态
-
-![image-20220721100246598](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/一台机器上最多能创建多少个TCP连接/705879c4b40c1806-image-20220721100246598.png)
-
-以及对应的堆栈
-
-![image-20220721100421130](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/一台机器上最多能创建多少个TCP连接/3594e16979d37988-image-20220721100421130.png)
-
-查看其中一个IO线程等待的锁，发现锁是被HTTP线程持有。这个线程正在执行`preClose0`，就是在这里等待连接的关闭![image-20220721100446521](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/一台机器上最多能创建多少个TCP连接/c8d7e7a2a3a5e49f-image-20220721100446521.png)
-
-每次HTTP线程在关闭连接被阻塞时，同时持有了`SocketChannelImpl`的对象锁，而IO线程在把这个连接移除出它的selector管理队列时，也要获得同一个`SocketChannelImpl`的对象锁。IO线程就这么一次次的被阻塞，悲剧的无以复加。有些NIO框架会让IO线程去做close，这时候就更加悲剧了。
-
-**总之这里的错误原因有两点：1）网络状态不好；2）错误理解了l_linger 的单位，是秒，不是毫秒。 在这两个原因的共同作用下导致了数据迟迟不能发送完毕，l_linger 超时又需要很久，所以服务会出现一直阻塞的状态。**
+### 
 
 ## 为什么要有 time_wait 状态
 
@@ -441,6 +394,12 @@ SocketChannel.setOption(SocketOption.SO_LINGER, 1000)
 再将 ab 改用长连接来压，可以看到si、sy都有下降，并且 si 下降到短连接的20%，QPS 还能提升到 5.2万
 
 ![image-20220627154931495](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/一台机器上最多能创建多少个TCP连接/f1a949f9001c604a-image-20220627154931495.png)
+
+
+
+## [可用 local port 不够导致对端time_wait 流重用进而卡顿案例](https://ata.alibaba-inc.com/articles/251853)
+
+A进程选择某个端口，并设置了 reuseaddr opt（表示其它进程还能继续用这个端口），这时B进程选了这个端口，并且bind了，如果 A 进程一直不释放这个端口对应的连接，那么这个端口会一直在内核中记录被bind用掉了（能bind的端口 是65535个，四元组不重复的连接你理解可以无限多），这样的端口越来越多后，剩下可供 A 进程发起连接的本地随机端口就越来越少了，这时会造成新建连接的时候这个四元组高概率重复，一般这个时候对端大概率还在 time_wait 状态，会忽略掉握手 syn 包并回复 ack ，进而造成建连接卡顿的现象
 
 ## 结论
 
@@ -466,7 +425,4 @@ https://idea.popcount.org/2014-04-03-bind-before-connect/
 
 [How to stop running out of ephemeral ports and start to love long-lived connections](https://blog.cloudflare.com/how-to-stop-running-out-of-ephemeral-ports-and-start-to-love-long-lived-connections/)
 
-
-
-Reference:
 
