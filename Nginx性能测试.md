@@ -70,7 +70,7 @@ The table and graph below show the number of HTTP requests for varying numbers o
 </tr>
 </table>
 
-[![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/c7b0f9f5286accc2-NGINX-HTTP-RPS.png)](https://www.nginx.com/wp-content/uploads/2017/08/NGINX-HTTP-RPS.png)
+[![img](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/c7b0f9f5286accc2-NGINX-HTTP-RPS.png)](https://www.nginx.com/wp-content/uploads/2017/08/NGINX-HTTP-RPS.png)
 
 ### RPS for HTTPS Requests
 
@@ -405,11 +405,11 @@ nginx on M 8核，http 长连接，访问极小的静态页面（AMD 上测试�
 
 从抓包来看，sendfile on的时候每次 http get都是回复两个包：1) http 包头（len：288）2）http body(len: 58)
 
-![image-20221008100922349](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/04033eaf0b3b1fa0-image-20221008100922349.png)
+![image-20221008100922349](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/04033eaf0b3b1fa0-image-20221008100922349.png)
 
 sendfile off的时候每次 http get都是回复一个包： http 包头+body（len：292=288+4）
 
-![image-20221008100808480](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/8481eaa6ff24307c-image-20221008100808480.png)
+![image-20221008100808480](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/8481eaa6ff24307c-image-20221008100808480.png)
 
 在这个小包场景，如果sendfile=off 后，回包在http层面就已经合并从1个了，导致内核没机会再次 cork（合并包）；如果sendfile=on 则是每次请求回复两个tcp包，如果设置了  nopush 会在内核层面合并一次。
 
@@ -485,25 +485,25 @@ Time               bytin  bytout   pktin  pktout  pkterr  pktdrp
 
 tcp_nopush=off：(QPS 37万)
 
-![image-20220930143920567](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/b0592353dcac26c9-image-20220930143920567.png)
+![image-20220930143920567](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/b0592353dcac26c9-image-20220930143920567.png)
 
 tcp_nopush=on：(QPS 46万)
 
-![image-20220930143419304](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/19421f33f7ba5094-image-20220930143419304.png)
+![image-20220930143419304](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/19421f33f7ba5094-image-20220930143419304.png)
 
 对比一下，在sendfile on的时候，用不同而push 参数对应的 tcp 栈
 
-![image-20221009093842151](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/8a86dc8d78b412a8-image-20221009093842151.png)
+![image-20221009093842151](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/8a86dc8d78b412a8-image-20221009093842151.png)
 
 ## Nginx 在16核后再增加核数性能提升很少的分析
 
 16核 perf top
 
-![image-20220916174106821](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/c084e284d2c7068f-image-20220916174106821.png)
+![image-20220916174106821](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/c084e284d2c7068f-image-20220916174106821.png)
 
 32核 perf top
 
-![image-20220916174234039](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/e41426b6c7747c38-image-20220916174234039.png)
+![image-20220916174234039](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/e41426b6c7747c38-image-20220916174234039.png)
 
 从以上两个perf top 对比可以看到内核锁消耗增加非常明显
 
@@ -553,7 +553,7 @@ Other:		0
 Combined:	32
 ```
 
-![image-20220916202347245](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/43d3cec0632f9be9-image-20220916202347245.png)
+![image-20220916202347245](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/43d3cec0632f9be9-image-20220916202347245.png)
 
 ### 文件锁的竞争
 
@@ -561,13 +561,13 @@ Nginx 在M 上使用 16 core的时候完全压不起来，都是内核态锁竞�
 
 从下图可以看到 sys 偏高，真正用于 us 的 CPU 太少，而内核态 CPU 消耗过高的是 osq_lock(写日志文件锁相关)
 
-![image-20220916151006533](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/e7a1c6711d1b7a68-image-20220916151006533.png)
+![image-20220916151006533](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/e7a1c6711d1b7a68-image-20220916151006533.png)
 
-![image-20220916151310488](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/3ac61ee66267e0ee-image-20220916151310488.png)
+![image-20220916151310488](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/3ac61ee66267e0ee-image-20220916151310488.png)
 
-![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/0ef598cb956b81e0-1663329200304-4f4b615b-8507-47c8-87ff-7e92939f12bc.png)
+![img](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/0ef598cb956b81e0-1663329200304-4f4b615b-8507-47c8-87ff-7e92939f12bc.png)
 
-![image-20220916151613388](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/e999282392c1947a-image-20220916151613388.png)
+![image-20220916151613388](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/e999282392c1947a-image-20220916151613388.png)
 
 16核对应的perf状态
 
@@ -595,13 +595,13 @@ Nginx 在M 上使用 16 core的时候完全压不起来，都是内核态锁竞�
 
 软中断和 nginx 在同一个node，这时基本看不到多少 si%
 
-![image-20220919180725510](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/1fffdda6a813948b-image-20220919180725510.png)
+![image-20220919180725510](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/1fffdda6a813948b-image-20220919180725510.png)
 
-![image-20220919180758887](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/92456a5514db9d85-image-20220919180758887.png)
+![image-20220919180758887](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/92456a5514db9d85-image-20220919180758887.png)
 
 软中断和 nginx 跨node（性能相当于同node的70-80%）, 软中断几乎快打满 8 个核了，同时性能还差
 
-![image-20220919180916190](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/Nginx性能测试/8f9875eec95ae41d-image-20220919180916190.png)
+![image-20220919180916190](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/Nginx性能测试/8f9875eec95ae41d-image-20220919180916190.png)
 
 ### 网络描述符、数据缓冲区，设备的关系
 
@@ -618,4 +618,6 @@ sendfile不一定导致性能变好了
 完善的Nginx在AWS Graviton上的测试报告https://armkeil.blob.core.windows.net/developer/Files/pdf/white-paper/guidelines-for-deploying-nginx-plus-on-aws.pdf
 
 
+
+Reference:
 
