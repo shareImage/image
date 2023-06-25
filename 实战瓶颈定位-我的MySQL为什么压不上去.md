@@ -30,7 +30,7 @@ Other:		0
 Combined:	32
 ```
 
-![img](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/d671eab97899ecfd-FlDlXFTuGa0BPv1YxR3KQZaP40de.png)
+![img](https://gitee.com/plantegg/shareImage/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/d671eab97899ecfd-FlDlXFTuGa0BPv1YxR3KQZaP40de.png)
 
 ## 压测过程
 
@@ -38,7 +38,7 @@ Combined:	32
 
 下图是压测时 htop 看到的MySQLD 所在EC2的 CPU使用情况，右边65-88是MySQLD进程(绿色表示us, 红色表示sys+si CPU)
 
-![image-20230511125934259](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/cf7b6eca00414681-image-20230511125934259.png)
+![image-20230511125934259](https://gitee.com/plantegg/shareImage/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/cf7b6eca00414681-image-20230511125934259.png)
 
 用top查看详细的每个 core 使用(只展示MySQLD使用的24core ，top 然后按1--还可以试试2/3，有惊喜)
 
@@ -79,7 +79,7 @@ Combined:	32
 
 写到这里RT 刚好翻倍16.66=8.33*2 数字精准得好像编故事一样，不得不贴一下原始数据证实一下：
 
-![image-20230511130851332](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/97b1f6eeee9b2d61-image-20230511130851332.png)
+![image-20230511130851332](https://gitee.com/plantegg/shareImage/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/97b1f6eeee9b2d61-image-20230511130851332.png)
 
 1000 并发和2000并发时的ping RTT对比(ttl 64说明内网直达)
 
@@ -150,17 +150,17 @@ timestamp		count		avg
 
 在客户端的机器上抓包，上面我们说过了1000并发的RT是8.33毫秒：
 
-![image-20230511141508811](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/650d50e9b55560d8-image-20230511141508811.png)
+![image-20230511141508811](https://gitee.com/plantegg/shareImage/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/650d50e9b55560d8-image-20230511141508811.png)
 
 注意上图，我把RT排序了，明显看到5ms到17ms 中间没有这个RT范围的包，但是有很多25ms的RT，平均下来确实是8.33毫秒，留下一个疑问：RT分布不符合正态，而且中间有很大一段范围镂空了！这是不应该的。
 
 同样我们再到MySQLD 所在机器抓包分析(注：正常路径先抓MySQLD上的包就行了)：
 
-![image-20230511141925557](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/21c6a08ee4548cdc-image-20230511141925557.png)
+![image-20230511141925557](https://gitee.com/plantegg/shareImage/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/21c6a08ee4548cdc-image-20230511141925557.png)
 
 同样是对RT 排序了，但是慢的RT都是对端发慢了(注意最右边的select， MySQL相应是 response)，同样对这个抓包求平均时间就是tcprstat 看到的103微秒，也就是0.1毫秒。
 
-![image-20230513084610300](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/040210a209384b63-image-20230513084610300.png)
+![image-20230513084610300](https://gitee.com/plantegg/shareImage/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/040210a209384b63-image-20230513084610300.png)
 
 同样在2000并发时也对MySQLD所在网卡抓包对比，response 的RT 没有变化，从这里可以看出瓶颈点在sysbench 和 MySQLD 的网卡之间的链路上，似乎有限流、管控
 
@@ -172,7 +172,7 @@ timestamp		count		avg
 
 htop状态：
 
-![image-20230511125346066](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/ff55d7ae606989ab-image-20230511125346066.png)
+![image-20230511125346066](https://gitee.com/plantegg/shareImage/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/ff55d7ae606989ab-image-20230511125346066.png)
 
 各CPU 详细分析：
 
@@ -426,7 +426,7 @@ Time (s)  Throughput   Bitrate    Cwnd    Rwnd  sndbuf  ssthresh  Retr  CA  Paci
 
 跑tcpperf触发限速时的监控(上下两个窗口是同一台机器)，红色是丢包率挺高的，绿色丢包就没了，应该是拥塞算法和限速管控达成了平衡
 
-![image-20230511215940306](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/5ddc891b901474cc-image-20230511215940306.png)
+![image-20230511215940306](https://gitee.com/plantegg/shareImage/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/5ddc891b901474cc-image-20230511215940306.png)
 
 反过来限速被我去掉了(限速可以进出双向单独控制)
 
@@ -473,11 +473,11 @@ sysbench(主键查询-小包) 12万QPS 正好命中 txckpps:120，tcpperf (大�
 
 实际结构如下：
 
-![image-20230513132101185](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/cb4b9ee29341bf77-image-20230513132101185.png)
+![image-20230513132101185](https://gitee.com/plantegg/shareImage/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/cb4b9ee29341bf77-image-20230513132101185.png)
 
 放开所有网络控制后，1000并发压力 30万QPS，RT 3.28，此时从sysbench 以及空闲机器ping MySQLD机器的 RTT和没压力基本一致
 
-![image-20230512090205685](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/d378a1c2c2f7d4f0-image-20230512090205685.png)
+![image-20230512090205685](https://gitee.com/plantegg/shareImage/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/d378a1c2c2f7d4f0-image-20230512090205685.png)
 
 top状态：
 
@@ -510,7 +510,7 @@ top状态：
 %Cpu88 :  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
 ```
 
-![image-20230512092713141](https://gitee.com/plantegg/image/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/dd0be709107c33c6-image-20230512092713141.png)
+![image-20230512092713141](https://gitee.com/plantegg/shareImage/raw/_md2zhihu_blog_cee8f3b4/实战瓶颈定位-我的MySQL为什么压不上去/dd0be709107c33c6-image-20230512092713141.png)
 
 小思考：
 
