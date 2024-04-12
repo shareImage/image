@@ -1,10 +1,422 @@
-# 不同CPU性能大PK
+
+# AMD Zen CPU 架构以及不同CPU性能大PK
 
 ## 前言
 
-比较Hygon7280、Intel、AMD、鲲鹏920、飞腾2500的性能情况
+本文先介绍AMD Zen 架构，结合前一篇文章《[CPU的生产和概念](https://www.atatech.org/articles/211563)》一起来看效果会更好，在[CPU的生产和概念](https://www.atatech.org/articles/211563)中主要是以Intel方案来介绍，CPU的生产和概念中的 多核和多个CPU方案2 就是指的AMD Zen2架构。
 
-## 参与比较的几款CPU参数
+Zen1 和 Intel 还比较像，只是一个CPU会封装多个小的Die来得到多核能力，导致NUMA node比较多。
+
+AMD 从Zen2开始架构有了比较大的变化，Zen2架构改动比较大，将IO从Core Die中抽离出来，形成一个专门的IO Die，这个IO Die可以用上一代的工艺实现来提升成品率降低成本。剩下的core Die 专注在core和cache的实现上，同时可以通过最新一代的工艺来提升性能。并且在一个CPU上封装一个 IO Die + 8个 core Die这样一块CPU做到像Intel一样就是一个大NUMA，但是成本低了很多，也许在云计算时代这么搞比较合适。当然会被大家笑话为胶水核（用胶水把多个Die拼在一起），性能肯定是不如一个大Die好，但是挡不住便宜啊。这估计就是大家所说的 **AMD YES！**吧
+
+比如Core Die用7nm工艺，IO Die用14nm工艺，一块CPU封装8个Core Die+1个IO Die的话既能得到一个多核的CPU成本有非常低，参考 《CPU的生产和概念》中的良品率和成品部分。
+
+介绍完AMD架构后，会拿海光7280这块CPU（实际是OEM的AMD Zen1 架构，一块芯片封装4个die）和 Intel的CPU用MySQL 来对比一下实际性能。
+
+网上Intel CPU架构、技术参数等各种资料还是很丰富的，但是AMD EPYC就比较少了，所以先来学习一下EPYC的架构特点。
+
+## AMD EPYC CPU演进路线
+
+![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/amd-rome-naples-chiplets.jpg)
+
+后面会针对 第二代的 EPYC来做一个对比测试。
+
+![AMD Accelerated Computing FAD 2020](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/AMD-Packaging-to-X3D-FAD-2020.jpg)
+
+AMD EPYC CPU Families:
+
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<tr class="header">
+<th style="text-align: left;">Family Name</th>
+<th style="text-align: left;">AMD EPYC Naples</th>
+<th style="text-align: left;">AMD EPYC Rome</th>
+<th style="text-align: left;">AMD EPYC Milan</th>
+<th style="text-align: left;">AMD EPYC Genoa</th>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Family Branding</td>
+<td style="text-align: left;">EPYC 7001</td>
+<td style="text-align: left;">EPYC 7002</td>
+<td style="text-align: left;">EPYC 7003</td>
+<td style="text-align: left;">EPYC 7004?</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Family Launch</td>
+<td style="text-align: left;">2017</td>
+<td style="text-align: left;">2019</td>
+<td style="text-align: left;">2021</td>
+<td style="text-align: left;">2022</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">CPU Architecture</td>
+<td style="text-align: left;">Zen 1</td>
+<td style="text-align: left;">Zen 2</td>
+<td style="text-align: left;">Zen 3</td>
+<td style="text-align: left;">Zen 4</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Process Node</td>
+<td style="text-align: left;">14nm GloFo</td>
+<td style="text-align: left;">7nm TSMC</td>
+<td style="text-align: left;">7nm TSMC</td>
+<td style="text-align: left;">5nm TSMC</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Platform Name</td>
+<td style="text-align: left;">SP3</td>
+<td style="text-align: left;">SP3</td>
+<td style="text-align: left;">SP3</td>
+<td style="text-align: left;">SP5</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Socket</td>
+<td style="text-align: left;">LGA 4094</td>
+<td style="text-align: left;">LGA 4094</td>
+<td style="text-align: left;">LGA 4094</td>
+<td style="text-align: left;">LGA 6096</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Max Core Count</td>
+<td style="text-align: left;">32</td>
+<td style="text-align: left;">64</td>
+<td style="text-align: left;">64</td>
+<td style="text-align: left;">96</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Max Thread Count</td>
+<td style="text-align: left;">64</td>
+<td style="text-align: left;">128</td>
+<td style="text-align: left;">128</td>
+<td style="text-align: left;">192</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Max L3 Cache</td>
+<td style="text-align: left;">64 MB</td>
+<td style="text-align: left;">256 MB</td>
+<td style="text-align: left;">256 MB</td>
+<td style="text-align: left;">384 MB?</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Chiplet Design</td>
+<td style="text-align: left;">4 CCD’s (2 CCX’s per CCD)，4 Die</td>
+<td style="text-align: left;">8 CCD’s (2 CCX’s per CCD) + 1 IOD ，9 Die</td>
+<td style="text-align: left;">8 CCD’s (1 CCX per CCD) + 1 IOD</td>
+<td style="text-align: left;">12 CCD’s (1 CCX per CCD) + 1 IOD</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Memory Support</td>
+<td style="text-align: left;">DDR4-2666</td>
+<td style="text-align: left;">DDR4-3200</td>
+<td style="text-align: left;">DDR4-3200</td>
+<td style="text-align: left;">DDR5-5200</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Memory Channels</td>
+<td style="text-align: left;">8 Channel</td>
+<td style="text-align: left;">8 Channel</td>
+<td style="text-align: left;">8 Channel</td>
+<td style="text-align: left;">12 Channel</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">PCIe Gen Support</td>
+<td style="text-align: left;">64 Gen 3</td>
+<td style="text-align: left;">128 Gen 4</td>
+<td style="text-align: left;">128 Gen 4</td>
+<td style="text-align: left;">128 Gen 5</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">TDP Range</td>
+<td style="text-align: left;">200W</td>
+<td style="text-align: left;">280W</td>
+<td style="text-align: left;">280W</td>
+<td style="text-align: left;">320W (cTDP 400W)</td>
+</tr>
+</table>
+
+## Zen1
+
+hygon 5280封装后类似下图(一块CPU封装了2个Die，还有封装4个Die的，core更多更贵而已)
+
+![image-20210812204437220](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/image-20210812204437220.png)
+
+或者4个Die封装在一起
+
+![image-20210813085044786](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/image-20210813085044786.png)
+
+### Zen1 Die
+
+下面这块Die集成了两个CCX（每个CCX四个物理core), 同时还有IO接口
+
+![Блоки CCX](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/zeppelin_face_down2.png)
+
+![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/515px-zen-1zep.svg.png)
+
+Quad-Zeppelin Configuration, as found in [EPYC](https://en.wikichip.org/wiki/amd/epyc).
+
+![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/512px-zen-4zep.svg.png)
+
+### Zen CPU Complex(CCX)
+
+hygon 5280使用这个结构， There are 4 cores per CCX and 2 CCXs per die for 8 cores.
+
+-   44 mm² area
+-   L3 8 MiB; 16 mm²
+-   1,400,000,000 transistors
+
+![amd zen ccx.png](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/450px-amd_zen_ccx.png)
+
+![amd zen ccx 2](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/700px-amd_zen_ccx_2_annotated.png)
+
+### 封装后的Zen1（4Die）
+
+![image-20210813085044786](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/image-20210813085044786.png)
+
+4个Die的内部关系
+
+![AMD Naples SoC.svg](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/800px-AMD_Naples_SoC.svg.png)
+
+详实数据和结构
+
+![Топология процессора](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/AMD-EPYC-Infinity-Fabric-Topology-Mapping.webp)
+
+## [Zen2 Rome](https://en.wikichip.org/wiki/amd/microarchitectures/zen_2)
+
+Zen2开始最大的变化就是将IO从Core Die中抽离出来，形成一个专门的IO Die。封装后如下图：
+
+<img src="/Users/ren/src/blog/951413iMgBlog/image-20210602165525641.png" alt="AMD Rome package with card" style="zoom:50%;" />
+
+![AMD Rome layout](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/AMD_Rome_layout-617x486.jpg)
+
+![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/amd-rome-feature-chart.jpg)
+
+### Zen2 Core Complex Die
+
+-   TSMC [7-nanometer process](https://en.wikichip.org/wiki/N7)
+-   13 metal layers[[1](https://en.wikichip.org/wiki/amd/microarchitectures/zen_2#cite_note-isscc2020j-zen2-1)]
+-   3,800,000,000 transistors[[2](https://en.wikichip.org/wiki/amd/microarchitectures/zen_2#cite_note-isscc2020p-chiplet-2)]
+-   Die size: 74 mm²
+-   CCX size: 31.3 mm²， 4core per CCX // 16M L3 perf CCX
+-   2 × 16 MiB L3 cache: 2 × 16.8 mm² (estimated) // 中间蓝色部分是L3 16M，一个Die封装两个CCX的情况下
+
+![AMD Zen 2 CCD.jpg](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/500px-AMD_Zen_2_CCD.jpg)
+
+## Zen1 VS Zen2
+
+Here is what the Naples and Rome packages look like from the outside:
+
+![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/amd-rome-epyc-zen1-zen2.jpg)
+
+numa
+
+![image-20210813091455662](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/image-20210813091455662.png)
+
+zen1 numa distance:
+
+![img](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/OctalNUMA_575px.png)
+
+hygon numa distance:
+
+```
+# numactl -H  //Zen1 hygon 7280  2 socket enable die interleaving
+available: 2 nodes (0-1)
+node 0 cpus: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95
+node 0 size: 257578 MB
+node 0 free: 115387 MB
+node 1 cpus: 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127
+node 1 size: 257005 MB
+node 1 free: 221031 MB
+node distances:
+node   0   1
+  0:  10  22
+  1:  22  10
+
+  #numactl -H //Zen1 hygon 5280  2 socket disable die interleaving
+available: 4 nodes (0-3)
+node 0 cpus: 0 1 2 3 4 5 6 7 32 33 34 35 36 37 38 39
+node 0 size: 128854 MB
+node 0 free: 89350 MB
+node 1 cpus: 8 9 10 11 12 13 14 15 40 41 42 43 44 45 46 47
+node 1 size: 129019 MB
+node 1 free: 89326 MB
+node 2 cpus: 16 17 18 19 20 21 22 23 48 49 50 51 52 53 54 55
+node 2 size: 128965 MB
+node 2 free: 86542 MB
+node 3 cpus: 24 25 26 27 28 29 30 31 56 57 58 59 60 61 62 63
+node 3 size: 129020 MB
+node 3 free: 98227 MB
+node distances:
+node   0   1   2   3
+  0:  10  16  28  22
+  1:  16  10  22  28
+  2:  28  22  10  16
+  3:  22  28  16  10
+```
+
+看完这些结构上的原理，让我们实际来看看AMD的性能怎么样。
+
+## hygon 7280 PCM数据
+
+hygon pcm(performance counter monitor) 工具由芯片公司提供
+
+```shell
+[root@hygon3 16:58 /root/PCM]
+#./pcm.x -r -topdown -i=1 -nc -ns -l2
+
+ Processor Counter Monitor  (2019-08-21 17:07:31 +0800 ID=378f2fc)
+
+Number of physical cores: 64
+Number of logical cores: 128
+Number of online logical cores: 128
+Threads (logical cores) per physical core: 2
+Num sockets: 2
+Physical cores per socket: 32
+Core PMU (perfmon) version: 3
+Number of core PMU generic (programmable) counters: 6
+Width of generic (programmable) counters: 64 bits
+Ccxs per Node: 8
+Logical cores per Ccx: 8
+Physical Cores per Ccx: 4
+Nodes per socket: 4
+Number of core PMU fixed counters: 0
+Width of fixed counters: 0 bits
+Nominal core frequency: 2000000000 Hz
+Package thermal spec power: -1 Watt; Package minimum power: -1 Watt; Package maximum power: -1 Watt;
+
+ Resetting PMU configuration
+ Zeroed PMU registers
+
+Detected Hygon C86 7280 32-core Processor  "Hygon(r) microarchitecture codename DHYANA" stepping 1
+
+ EXEC  : instructions per nominal CPU cycle
+ IPC   : instructions per CPU cycle
+ FREQ  : relation to nominal CPU frequency='unhalted clock ticks'/'invariant timer ticks' (includes Intel Turbo Boost)
+ AFREQ : relation to nominal CPU frequency while in active state (not in power-saving C state)='unhalted clock ticks'/'invariant timer ticks while in C0-state'  (includes Intel Turbo Boost)
+ L3MISS: L3 (read) cache misses
+ L3MPKI: L3 misses per kilo instructions
+ L3HIT : L3 (read) cache hit ratio (0.00-1.00)
+ L2DMISS:L2 data cache misses
+ L2DHIT :L2 data cache hit ratio (0.00-1.00)
+ L2DMPKI:number of L2 data cache misses per kilo instruction
+ L2IMISS:L2 instruction cache misses
+ L2IHIT :L2 instructoon cache hit ratio (0.00-1.00)
+ L2IMPKI:number of L2  instruction cache misses per kilo instruction
+ L2MPKI :number of both L2 instruction and data cache misses per kilo instruction
+
+ Core (SKT) |  EXEC  |   IPC  |  FREQ  |  AFREQ | L2DMISS| L2DHIT | L2DMPKI| L2IMISS| L2IHIT | L2IMPKI| L2MPKI | L3MISS | L3MPKI |  L3HIT | TEMP
+
+---------------------------------------------------------------------------------------------------------------
+ TOTAL  *     1.29     1.20     1.08     1.00     12 M     0.73     0.04     10 M     0.87     0.03     0.07     19 M     0.00     0.55     N/A
+
+ Instructions retired:  336 G ; Active cycles:  281 G ; Time (TSC): 2082 Mticks ; C0 (active,non-halted) core residency: 107.90 %
+
+
+ PHYSICAL CORE IPC                 : 2.39 => corresponds to 34.14 % utilization for cores in active state
+ Instructions per nominal CPU cycle: 2.58 => corresponds to 36.84 % core utilization over time interval
+---------------------------------------------------------------------------------------------------------------
+
+Cleaning up
+ Zeroed PMU registers
+```
+
+在本地启动benchmarksql压力，并将进程绑定到0-8core，然后采集到数据：
+
+```shell
+#./pcm.x -r -topdown -i=1 -l2
+
+ Processor Counter Monitor  (2019-08-21 17:07:31 +0800 ID=378f2fc)
+
+Number of physical cores: 64
+Number of logical cores: 128
+Number of online logical cores: 128
+Threads (logical cores) per physical core: 2
+Num sockets: 2
+Physical cores per socket: 32
+Core PMU (perfmon) version: 3
+Number of core PMU generic (programmable) counters: 6
+Width of generic (programmable) counters: 64 bits
+Ccxs per Node: 8
+Logical cores per Ccx: 8
+Physical Cores per Ccx: 4
+Nodes per socket: 4
+Number of core PMU fixed counters: 0
+Width of fixed counters: 0 bits
+Nominal core frequency: 2000000000 Hz
+Package thermal spec power: -1 Watt; Package minimum power: -1 Watt; Package maximum power: -1 Watt;
+
+ Resetting PMU configuration
+ Zeroed PMU registers
+
+Detected Hygon C86 7280 32-core Processor  "Hygon(r) microarchitecture codename DHYANA" stepping 1
+
+ EXEC  : instructions per nominal CPU cycle
+ IPC   : instructions per CPU cycle
+ FREQ  : relation to nominal CPU frequency='unhalted clock ticks'/'invariant timer ticks' (includes Intel Turbo Boost)
+ AFREQ : relation to nominal CPU frequency while in active state (not in power-saving C state)='unhalted clock ticks'/'invariant timer ticks while in C0-state'  (includes Intel Turbo Boost)
+ L3MISS: L3 (read) cache misses
+ L3MPKI: L3 misses per kilo instructions
+ L3HIT : L3 (read) cache hit ratio (0.00-1.00)
+ L2DMISS:L2 data cache misses
+ L2DHIT :L2 data cache hit ratio (0.00-1.00)
+ L2DMPKI:number of L2 data cache misses per kilo instruction
+ L2IMISS:L2 instruction cache misses
+ L2IHIT :L2 instructoon cache hit ratio (0.00-1.00)
+ L2IMPKI:number of L2  instruction cache misses per kilo instruction
+ L2MPKI :number of both L2 instruction and data cache misses per kilo instruction
+
+ Core (SKT) |  EXEC  |   IPC  |  FREQ  |  AFREQ | L2DMISS| L2DHIT | L2DMPKI| L2IMISS| L2IHIT | L2IMPKI| L2MPKI | L3MISS | L3MPKI |  L3HIT | TEMP
+
+   0    0     1.34     1.26     1.06     1.00   8901 K     0.72     3.15     15 M     0.68     5.43     8.58     71 M     4.00     0.60      N/A
+   1    0     1.42     1.33     1.06     1.00   8491 K     0.73     2.83     14 M     0.68     4.67     7.50     71 M     4.00     0.60      N/A
+   2    0     1.41     1.33     1.06     1.00   8206 K     0.74     2.75     12 M     0.72     4.25     7.00     71 M     4.00     0.60      N/A
+   3    0     1.46     1.38     1.06     1.00   7464 K     0.75     2.40     11 M     0.68     3.81     6.21     71 M     4.00     0.60      N/A
+   4    0     1.31     1.24     1.06     1.00   9118 K     0.71     3.28     15 M     0.69     5.61     8.88     70 M     4.00     0.61      N/A
+   5    0     1.41     1.33     1.06     1.00   8700 K     0.74     2.92     13 M     0.69     4.66     7.57     70 M     4.00     0.61      N/A
+   6    0     1.41     1.33     1.06     1.00   8094 K     0.74     2.79     12 M     0.70     4.40     7.18     70 M     4.00     0.61      N/A
+   7    0     1.43     1.35     1.06     1.00   7873 K     0.74     2.68     12 M     0.71     4.13     6.81     70 M     4.00     0.61      N/A
+   8    0     1.44     1.36     1.06     1.00   8544 K     0.73     2.79     14 M     0.67     4.87     7.66     20 M     1.00     0.61      N/A
+   9    0     1.24     1.16     1.06     1.00    524 K     0.51     0.21     86 K     0.94     0.03     0.24     20 M     1.00     0.61      N/A
+  10    0     1.26     1.18     1.07     1.00    379 K     0.50     0.15     60 K     0.95     0.02     0.17     20 M     1.00     0.61      N/A
+  11    0     1.24     1.16     1.07     1.00    533 K     0.50     0.20     96 K     0.94     0.04     0.24     20 M     1.00     0.61      N/A
+  12    0     1.22     1.14     1.07     1.00   1180 K     0.34     0.47     98 K     0.94     0.04     0.51   3872 K     0.12     0.46      N/A
+  13    0     1.24     1.16     1.07     1.00    409 K     0.49     0.16     64 K     0.94     0.03     0.19   3872 K     0.12     0.46      N/A
+
+  ---------------------------------------------------------------------------------------------------------------
+ SKT    0     1.18     1.11     1.06     1.00    113 M     0.67     0.73    139 M     0.71     0.89     1.62    186 M     1.12     0.59      N/A
+ SKT    1     1.23     1.14     1.08     1.00     33 M     0.53     0.21     11 M     0.89     0.07     0.28     38 M     0.12     0.45      N/A
+---------------------------------------------------------------------------------------------------------------
+ TOTAL  *     1.21     1.13     1.07     1.00    147 M     0.65     0.46    150 M     0.74     0.47     0.93    224 M     0.62     0.57     N/A
+
+ Instructions retired:  319 G ; Active cycles:  283 G ; Time (TSC): 2108 Mticks ; C0 (active,non-halted) core residency: 107.12 %
+
+
+ PHYSICAL CORE IPC                 : 2.25 => corresponds to 32.18 % utilization for cores in active state
+ Instructions per nominal CPU cycle: 2.41 => corresponds to 34.48 % core utilization over time interval
+---------------------------------------------------------------------------------------------------------------
+
+Cleaning up
+ Zeroed PMU registers
+```
+
+## 倚天710
+
+一个die有64core，每两个core是一个cluster，一块cpu封装两个die
+
+一个die大小是314平方毫米，600亿晶体管
+
+![image-20211205130348832](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/image-20211205130348832.png)
+
+平头哥的几款芯片：
+
+![preview](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/v2-4a587237e30986b36c5657761c31ae21_r.jpg)
+
+## 几款CPU性能比较
 
 IPC的说明：
 
@@ -12,9 +424,10 @@ IPC的说明：
 > 
 > 程序的执行时间 = 指令数/(主频*IPC) //单核下，多核的话再除以核数
 
+
 ### Hygon 7280
 
-Hygon 7280 就是AMD Zen架构，最大IPC能到5.
+Hygon 7280 就是AMD Zen2架构，最大IPC能到5.
 
 ```shell
 架构：                           x86_64
@@ -48,10 +461,6 @@ NUMA 节点5 CPU：                 40-47,104-111
 NUMA 节点6 CPU：                 48-55,112-119
 NUMA 节点7 CPU：                 56-63,120-127
 ```
-
-曙光H620-G30A 机型硬件结构，CPU是hygon 7280（截图只截取了Socket0）
-
-![image-20211231202402561](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/不同CPU性能大PK/image-20211231202402561.png)
 
 ### AMD EPYC 7H12
 
@@ -146,55 +555,6 @@ NUMA node0 CPU(s):     0-25,52-77
 NUMA node1 CPU(s):     26-51,78-103
 ```
 
-### 鲲鹏920
-
-```
-[root@ARM 19:15 /root/lmbench3]
-#numactl -H
-available: 4 nodes (0-3)
-node 0 cpus: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
-node 0 size: 192832 MB
-node 0 free: 146830 MB
-node 1 cpus: 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47
-node 1 size: 193533 MB
-node 1 free: 175354 MB
-node 2 cpus: 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71
-node 2 size: 193533 MB
-node 2 free: 175718 MB
-node 3 cpus: 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95
-node 3 size: 193532 MB
-node 3 free: 183643 MB
-node distances:
-node   0   1   2   3
-  0:  10  12  20  22
-  1:  12  10  22  24
-  2:  20  22  10  12
-  3:  22  24  12  10
-
-  #lscpu
-Architecture:          aarch64
-Byte Order:            Little Endian
-CPU(s):                96
-On-line CPU(s) list:   0-95
-Thread(s) per core:    1
-Core(s) per socket:    48
-Socket(s):             2
-NUMA node(s):          4
-Model:                 0
-CPU max MHz:           2600.0000
-CPU min MHz:           200.0000
-BogoMIPS:              200.00
-L1d cache:             64K
-L1i cache:             64K
-L2 cache:              512K
-L3 cache:              24576K
-NUMA node0 CPU(s):     0-23
-NUMA node1 CPU(s):     24-47
-NUMA node2 CPU(s):     48-71
-NUMA node3 CPU(s):     72-95
-Flags:                 fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma dcpop asimddp asimdfhm
-```
-
 ### 飞腾2500
 
 飞腾2500用nop去跑IPC的话，只能到1，但是跑其它代码能到2.33
@@ -284,15 +644,15 @@ Processor Information
     Core Enabled: 64
     Thread Count: 64
     Characteristics:
-        64-bit capable
-        Multi-Core
-        Hardware Thread
-        Execute Protection
-        Enhanced Virtualization
-        Power/Performance Control
+    	64-bit capable
+    	Multi-Core
+    	Hardware Thread
+    	Execute Protection
+    	Enhanced Virtualization
+    	Power/Performance Control
 ```
 
-## 单核以及HT计算Prime性能比较
+### 单核以及HT计算Prime性能比较
 
 以上两款CPU但从物理上的指标来看似乎AMD要好很多，从工艺上AMD也要领先一代(2年），从单核参数上来说是2.0 VS 2.5GHz，但是IPC 是5 VS 4，算下来理想的单核性能刚好一致（2*5=2.5 *4）。
 
@@ -384,11 +744,11 @@ sysbench 1.0.20 (using bundled LuaJIT 2.1.0-beta2)
 </tr>
 </table>
 
-## 对比MySQL sysbench和tpcc性能
+### 对比MySQL sysbench和tpcc性能
 
 分别将MySQL 5.7.34社区版部署到intel+AliOS以及hygon 7280+CentOS上，将mysqld绑定到单核，一样的压力配置均将CPU跑到100%，然后用sysbench测试点查， HT表示将mysqld绑定到一对HT核。
 
-### sysbench点查
+#### sysbench点查
 
 测试命令类似如下：
 
@@ -485,9 +845,9 @@ sysbench --test='/usr/share/doc/sysbench/tests/db/select.lua' --oltp_tables_coun
 </tr>
 </table>
 
-- 麒麟OS下CPU很难跑满，大致能跑到90%-95%左右，麒麟上装的社区版MySQL-5.7.29；飞腾要特别注意mysqld所在socket，同时以上飞腾数据都是走--socket压测锁的，32core走网络压测QPS为：99496（15%的网络损耗）[^说明]
+-   麒麟OS下CPU很难跑满，大致能跑到90%-95%左右，麒麟上装的社区版MySQL-5.7.29；飞腾要特别注意mysqld所在socket，同时以上飞腾数据都是走--socket压测锁的，32core走网络压测QPS为：99496（15%的网络损耗）[^说明]
 
-### Mysqld 二进制代码所在 page cache带来的性能影响
+#### Mysqld 二进制代码所在 page cache带来的性能影响
 
 如果是飞腾跨socket影响很大，mysqld二进制跨socket性能会下降30%以上
 
@@ -541,7 +901,7 @@ sysbench --test='/usr/share/doc/sysbench/tests/db/select.lua' --oltp_tables_coun
 01a70000 default file=/usr/local/mysql/bin/mysqld anon=43 dirty=43 mapped=120 active=43 N0=120 kernelpagesize_kB=4
 ```
 
-### 网卡以及node距离带来的性能差异
+#### 网卡以及node距离带来的性能差异
 
 在鲲鹏920+mysql5.7+alios，将内存分配锁在node0上，然后分别绑核在1、24、48、72core，进行sysbench点查对比
 
@@ -614,7 +974,7 @@ mapped    :         4548 (  0.02 GB)
 
 此时软中断都在node0上，如果将软中断绑定到node3上，第72core的QPS能提升到8500，并且非常稳定。同时core0的QPS下降到10000附近。
 
-#### 网卡软中断以及网卡远近的测试结论
+##### 网卡软中断以及网卡远近的测试结论
 
 测试机器只是用了一块网卡，网卡插在node0上。
 
@@ -622,7 +982,7 @@ mapped    :         4548 (  0.02 GB)
 
 如果将业务跑在node0上（全部24core），网卡中断分别在node0和node1上得到的QPS分别是：204000 VS 212000
 
-### tpcc 1000仓
+#### tpcc 1000仓
 
 测试结果(测试中Hygon 7280分别跑在CentOS7.9和麒麟上， 鲲鹏/intel CPU 跑在AliOS、麒麟是国产OS)：
 
@@ -723,7 +1083,7 @@ tpcc测试数据，结果为1000仓，tpmC (NewOrders) ，未标注CPU 则为跑
 
 tpcc并发到一定程度后主要是锁导致性能上不去，所以超多核意义不大。
 
-如果在Hygon 7280 2.1GHz 麒麟上起两个MySQLD实例，每个实例各绑定32物理core，性能刚好翻倍：![image-20210823082702539](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/不同CPU性能大PK/image-20210823082702539.png)
+如果在Hygon 7280 2.1GHz 麒麟上起两个MySQLD实例，每个实例各绑定32物理core，性能刚好翻倍：![image-20210823082702539](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/image-20210823082702539.png)
 
 测试过程CPU均跑满（未跑满的话会标注出来），IPC跑不起来性能就必然低，超线程虽然总性能好了但是会导致IPC降低(参考前面的公式)。可以看到对本来IPC比较低的场景，启用超线程后一般对性能会提升更大一些。
 
@@ -731,9 +1091,9 @@ CPU核数增加到32核后，MySQL社区版性能追平xdb， 此时sysbench使�
 
 32核的时候对比下MySQL 社区版在Hygon7280和Intel 8163下的表现：
 
-![image-20210817181752243](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/不同CPU性能大PK/image-20210817181752243.png)
+![image-20210817181752243](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/image-20210817181752243.png)
 
-## 三款CPU的性能指标
+### 三款CPU的性能指标
 
 <table>
 <tr class="header">
@@ -867,9 +1227,7 @@ STREAM triad bandwidth: 1833.68 MB/sec
 
 Lat_mem_rd 用cpu7访问node0和node15对比结果，随着数据的加大，延时在加大，64M时能有3倍差距，和上面测试一致
 
-下图 第一列 表示读写数据的大小（单位M），第二列表示访问延时（单位纳秒），一般可以看到在L1/L2/L3 cache大小的地方延时会有跳跃，远超过L3大小后，延时就是内存延时了
-
-![image-20210924185044090](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/不同CPU性能大PK/image-20210924185044090.png)
+![image-20210924185044090](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/image-20210924185044090.png)
 
 ```
 numactl -C 7 -m 0 ./bin/lat_mem_rd -W 5 -N 5 -t 64M  //-C 7 cpu 7, -m 0 node0, -W 热身 -t stride
@@ -877,7 +1235,7 @@ numactl -C 7 -m 0 ./bin/lat_mem_rd -W 5 -N 5 -t 64M  //-C 7 cpu 7, -m 0 node0, -
 
 同样的机型，开关numa的测试结果，关numa 时延、带宽都差了几倍
 
-![image-20210924192330025](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/不同CPU性能大PK/image-20210924192330025.png)
+![image-20210924192330025](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/image-20210924192330025.png)
 
 关闭numa的机器上测试结果随机性很强，这应该是和内存分配在那里有关系，不过如果机器一直保持这个状态反复测试的话，快的core一直快，慢的core一直慢，这是因为物理地址分配有一定的规律，在物理内存没怎么变化的情况下，快的core恰好分到的内存比较近。
 
@@ -886,6 +1244,28 @@ numactl -C 7 -m 0 ./bin/lat_mem_rd -W 5 -N 5 -t 64M  //-C 7 cpu 7, -m 0 node0, -
 ### 鲲鹏920
 
 ```
+[root@ARM 19:15 /root/lmbench3]
+#numactl -H
+available: 4 nodes (0-3)
+node 0 cpus: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
+node 0 size: 192832 MB
+node 0 free: 146830 MB
+node 1 cpus: 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47
+node 1 size: 193533 MB
+node 1 free: 175354 MB
+node 2 cpus: 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71
+node 2 size: 193533 MB
+node 2 free: 175718 MB
+node 3 cpus: 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95
+node 3 size: 193532 MB
+node 3 free: 183643 MB
+node distances:
+node   0   1   2   3
+  0:  10  12  20  22
+  1:  12  10  22  24
+  2:  20  22  10  12
+  3:  22  24  12  10
+
 #for i in $(seq 0 15); do echo core:$i; numactl -N $i -m 7 ./bin/stream  -W 5 -N 5 -M 64M; done
 STREAM copy latency: 1.84 nanoseconds
 STREAM copy bandwidth: 8700.75 MB/sec
@@ -976,7 +1356,7 @@ NUMA 节点5 CPU：                 40-47,104-111
 NUMA 节点6 CPU：                 48-55,112-119
 NUMA 节点7 CPU：                 56-63,120-127
 
-//可以看到7号core比15、23、31号core明显要快，就近访问node 0的内存，跨numa node（跨Die）没有内存交织分配
+//可以看到7号core比15、23、31号core明显要快，就近访问node 0的内存，跨numa node没有内存交织分配
 [root@hygon8 14:32 /root/lmbench-master]
 #time for i in $(seq 7 8 64); do echo $i; numactl -C $i -m 0 ./bin/stream -W 5 -N 5 -M 64M; done
 7
@@ -1026,7 +1406,7 @@ STREAM triad latency: 3.68 nanoseconds
 STREAM triad bandwidth: 6523.02 MB/sec
 ```
 
-如果这种芯片在bios里设置Die interleaving，4块die当成一个numa node吐出来给OS
+如果这种CPU在bios里设置错误，比如将一个socket内的4块die当成一个numa node吐出来给OS
 
 ```
 #lscpu
@@ -1058,9 +1438,7 @@ NUMA 节点0 CPU：                 0-31,64-95
 NUMA 节点1 CPU：                 32-63,96-127
 
 
-//enable die interleaving 后继续streaming测试
 //最终测试结果表现就是7/15/23/31 core性能一致，因为默认一个numa内内存交织分配
-//可以看到同一路下的四个die内存交织访问，所以4个node内存延时一样了（被平均），都不如就近快
 [root@hygon3 16:09 /root/lmbench-master]
 #time for i in $(seq 7 8 64); do echo $i; numactl -C $i -m 0 ./bin/stream -W 5 -N 5 -M 64M; done
 7
@@ -1113,104 +1491,10 @@ STREAM copy latency: 2.31 nanoseconds
 STREAM copy bandwidth: 6938.47 MB/sec
 ```
 
-[以华为泰山服务器(鲲鹏920芯片)配置为例](https://support.huawei.com/enterprise/zh/doc/EDOC1100088653/32aa8773)：![image-20211228165542167](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/不同CPU性能大PK/image-20211228165542167.png)
+[以华为泰山服务器(鲲鹏920芯片)配置为例](https://support.huawei.com/enterprise/zh/doc/EDOC1100088653/32aa8773)：![image-20211228165542167](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/AMD_Zen_CPU架构/image-20211228165542167.png)
 
 > Die Interleaving 控制是否使能DIE交织。使能DIE交织能充分利用系统的DDR带宽，并尽量保证各DDR通道的带宽均衡，提升DDR的利用率
 
-### hygon5280测试数据
-
-```
------hygon5280测试数据
-[root@localhost lmbench-master]# for i in $(seq 0 8 24); do echo $i; numactl -C $i -m 0 ./bin/stream -W 5 -N 5 -M 64M; done
-0
-STREAM copy latency: 1.22 nanoseconds
-STREAM copy bandwidth: 13166.34 MB/sec
-STREAM scale latency: 1.13 nanoseconds
-STREAM scale bandwidth: 14166.95 MB/sec
-STREAM add latency: 1.15 nanoseconds
-STREAM add bandwidth: 20818.63 MB/sec
-STREAM triad latency: 1.39 nanoseconds
-STREAM triad bandwidth: 17211.81 MB/sec
-8
-STREAM copy latency: 1.56 nanoseconds
-STREAM copy bandwidth: 10273.07 MB/sec
-STREAM scale latency: 1.50 nanoseconds
-STREAM scale bandwidth: 10701.89 MB/sec
-STREAM add latency: 1.20 nanoseconds
-STREAM add bandwidth: 19996.68 MB/sec
-STREAM triad latency: 1.93 nanoseconds
-STREAM triad bandwidth: 12443.70 MB/sec
-16
-STREAM copy latency: 2.52 nanoseconds
-STREAM copy bandwidth: 6357.71 MB/sec
-STREAM scale latency: 2.48 nanoseconds
-STREAM scale bandwidth: 6454.95 MB/sec
-STREAM add latency: 1.67 nanoseconds
-STREAM add bandwidth: 14362.51 MB/sec
-STREAM triad latency: 3.65 nanoseconds
-STREAM triad bandwidth: 6572.85 MB/sec
-24
-STREAM copy latency: 2.44 nanoseconds
-STREAM copy bandwidth: 6554.24 MB/sec
-STREAM scale latency: 2.41 nanoseconds
-STREAM scale bandwidth: 6642.80 MB/sec
-STREAM add latency: 1.44 nanoseconds
-STREAM add bandwidth: 16695.82 MB/sec
-STREAM triad latency: 3.61 nanoseconds
-STREAM triad bandwidth: 6639.18 MB/sec
-[root@localhost lmbench-master]# lscpu
-架构：                           x86_64
-CPU 运行模式：                   32-bit, 64-bit
-字节序：                         Little Endian
-Address sizes:                   43 bits physical, 48 bits virtual
-CPU:                             64
-在线 CPU 列表：                  0-63
-每个核的线程数：                 2
-每个座的核数：                   16
-座：                             2
-NUMA 节点：                      4
-厂商 ID：                        HygonGenuine
-CPU 系列：                       24
-型号：                           1
-型号名称：                       Hygon C86 5280 16-core Processor
-步进：                           1
-Frequency boost:                 enabled
-CPU MHz：                        2799.311
-CPU 最大 MHz：                   2500.0000
-CPU 最小 MHz：                   1600.0000
-BogoMIPS：                       4999.36
-虚拟化：                         AMD-V
-L1d 缓存：                       1 MiB
-L1i 缓存：                       2 MiB
-L2 缓存：                        16 MiB
-L3 缓存：                        64 MiB
-NUMA 节点0 CPU：                 0-7,32-39
-NUMA 节点1 CPU：                 8-15,40-47
-NUMA 节点2 CPU：                 16-23,48-55
-NUMA 节点3 CPU：                 24-31,56-63
-Vulnerability Itlb multihit:     Not affected
-Vulnerability L1tf:              Not affected
-Vulnerability Mds:               Not affected
-Vulnerability Meltdown:          Not affected
-Vulnerability Spec store bypass: Mitigation; Speculative Store Bypass disabled via prctl and seccomp
-Vulnerability Spectre v1:        Mitigation; usercopy/swapgs barriers and __user pointer sanitization
-Vulnerability Spectre v2:        Mitigation; Full AMD retpoline, IBPB conditional, STIBP disabled, RSB
-                                 filling
-Vulnerability Srbds:             Not affected
-Vulnerability Tsx async abort:   Not affected
-标记：                           fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse3
-                                 6 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdts
-                                 cp lm constant_tsc rep_good nopl nonstop_tsc cpuid extd_apicid amd_dcm
-                                  aperfmperf pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe p
-                                 opcnt xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy
-                                 abm sse4a misalignsse 3dnowprefetch osvw skinit wdt tce topoext perfct
-                                 r_core perfctr_nb bpext perfctr_llc mwaitx cpb hw_pstate sme ssbd sev
-                                 ibpb vmmcall fsgsbase bmi1 avx2 smep bmi2 rdseed adx smap clflushopt s
-                                 ha_ni xsaveopt xsavec xgetbv1 xsaves clzero irperf xsaveerptr arat npt
-                                  lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassist
-                                 s pausefilter pfthreshold avic v_vmsave_vmload vgif overflow_recov suc
-                                 cor smca
-```
 
 ### intel 8269CY
 
@@ -1291,75 +1575,6 @@ STREAM triad latency: 1.96 nanoseconds
 STREAM triad bandwidth: 12239.44 MB/sec
 ```
 
-### Intel(R) Xeon(R) CPU E5-2682 v4
-
-```
-#time for i in $(seq 0 8 51); do echo $i; numactl -C $i -m 0 ./bin/stream -W 5 -N 5 -M 64M; done
-0
-STREAM copy latency: 1.59 nanoseconds
-STREAM copy bandwidth: 10092.31 MB/sec
-STREAM scale latency: 1.57 nanoseconds
-STREAM scale bandwidth: 10169.16 MB/sec
-STREAM add latency: 1.31 nanoseconds
-STREAM add bandwidth: 18360.83 MB/sec
-STREAM triad latency: 2.28 nanoseconds
-STREAM triad bandwidth: 10503.81 MB/sec
-8
-STREAM copy latency: 1.55 nanoseconds
-STREAM copy bandwidth: 10312.14 MB/sec
-STREAM scale latency: 1.56 nanoseconds
-STREAM scale bandwidth: 10283.70 MB/sec
-STREAM add latency: 1.30 nanoseconds
-STREAM add bandwidth: 18416.26 MB/sec
-STREAM triad latency: 2.23 nanoseconds
-STREAM triad bandwidth: 10777.08 MB/sec
-16
-STREAM copy latency: 2.02 nanoseconds
-STREAM copy bandwidth: 7914.25 MB/sec
-STREAM scale latency: 2.02 nanoseconds
-STREAM scale bandwidth: 7919.85 MB/sec
-STREAM add latency: 1.39 nanoseconds
-STREAM add bandwidth: 17276.06 MB/sec
-STREAM triad latency: 2.92 nanoseconds
-STREAM triad bandwidth: 8231.18 MB/sec
-24
-STREAM copy latency: 1.99 nanoseconds
-STREAM copy bandwidth: 8032.18 MB/sec
-STREAM scale latency: 1.98 nanoseconds
-STREAM scale bandwidth: 8061.12 MB/sec
-STREAM add latency: 1.39 nanoseconds
-STREAM add bandwidth: 17313.94 MB/sec
-STREAM triad latency: 2.88 nanoseconds
-STREAM triad bandwidth: 8318.93 MB/sec
-
-#lscpu
-Architecture:          x86_64
-CPU op-mode(s):        32-bit, 64-bit
-Byte Order:            Little Endian
-CPU(s):                64
-On-line CPU(s) list:   0-63
-Thread(s) per core:    2
-Core(s) per socket:    16
-Socket(s):             2
-NUMA node(s):          2
-Vendor ID:             GenuineIntel
-CPU family:            6
-Model:                 79
-Model name:            Intel(R) Xeon(R) CPU E5-2682 v4 @ 2.50GHz
-Stepping:              1
-CPU MHz:               2500.000
-CPU max MHz:           3000.0000
-CPU min MHz:           1200.0000
-BogoMIPS:              5000.06
-Virtualization:        VT-x
-L1d cache:             32K
-L1i cache:             32K
-L2 cache:              256K
-L3 cache:              40960K
-NUMA node0 CPU(s):     0-15,32-47
-NUMA node1 CPU(s):     16-31,48-63
-```
-
 ### stream对比数据
 
 总结下几个CPU用stream测试访问内存的RT以及抖动和带宽对比数据
@@ -1401,38 +1616,22 @@ NUMA node1 CPU(s):     16-31,48-63
 <td>6206.99 MB/sec</td>
 </tr>
 <tr class="odd">
-<td>海光5280(4 numa node)</td>
-<td>1.22</td>
-<td>2.52</td>
-<td>13166.34 MB/sec</td>
-<td>6357.71 MB/sec</td>
-</tr>
-<tr class="even">
 <td>Intel8269CY(2 numa node)</td>
 <td>1.12</td>
 <td>1.52</td>
 <td>14293.68 MB/sec</td>
 <td>10551.71 MB/sec</td>
 </tr>
-<tr class="odd">
-<td>Intel E5-2682(2 numa node)</td>
-<td>1.58</td>
-<td>2.02</td>
-<td>10092.31 MB/sec</td>
-<td>7914.25 MB/sec</td>
-</tr>
 <tr class="even">
 <td>倚天710</td>
-<td></td>
-<td></td>
+<td>133ns</td>
+<td>205ns</td>
 <td></td>
 <td></td>
 </tr>
 </table>
 
 从以上数据可以看出这5款CPU性能一款比一款好，飞腾2500慢的core上延时快到intel 8269的10倍了，平均延时5倍以上了。延时数据基本和单核上测试sysbench TPS一致。性能差不多就是：常数*主频/RT
-
-### lat_mem_rd对比数据
 
 用不同的node上的core 跑lat_mem_rd测试访问node0内存的RT，只取最大64M的时延，时延和node距离完全一致
 
@@ -1458,20 +1657,12 @@ NUMA node1 CPU(s):     16-31,48-63
 <td>numa0 106.839<br/>numa1 168.583<br/>numa2 163.925<br/>numa3 163.690<br/>numa4 289.628<br/>numa5 288.632<br/>numa6 236.615<br/>numa7 291.880<br/>分割行<br/>enabled die interleaving <br/>core:0 153.005<br/>core:16 152.458<br/>core:32 272.057<br/>core:48 269.441</td>
 </tr>
 <tr class="even">
-<td>海光5280(4 numa node)</td>
-<td>core:0 102.574<br/>core:8 160.989<br/>core:16 286.850<br/>core:24 231.197</td>
-</tr>
-<tr class="odd">
 <td>Intel 8269CY(2 numa node)</td>
 <td>core:0 69.792<br/>core:26 93.107</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>申威3231(2numa node)</td>
 <td>core:0 215.146<br/>core:32 282.443</td>
-</tr>
-<tr class="odd">
-<td>倚天710（2Die）</td>
-<td>133ns 205ns （待测）</td>
 </tr>
 </table>
 
@@ -1481,63 +1672,30 @@ NUMA node1 CPU(s):     16-31,48-63
 for i in $(seq 0 8 127); do echo core:$i; numactl -C $i -m 0 ./bin/lat_mem_rd -W 5 -N 5 -t 64M; done >lat.log 2>&1
 ```
 
-测试结果和numactl -H 看到的node distance完全一致，芯片厂家应该就是这样测试然后把这个延迟当做距离写进去了
+测试结果和numactl -H 看到的node distance完全一致，芯片厂家应该就是这样测试然后把距离写进去了
 
-### 龙芯测试数据
+### 对比结论
 
-3A5000为龙芯，执行的命令为./lat_mem_rd 128M 4096，其中 4096 参数为跳步大小。其基本原理是，通过按 给定间隔去循环读一定大小的内存区域，测量每个读平均的时间。如果区域大小小于 L1 Cache 大 小，时间应该接近 L1 的访问延迟;如果大于 L1 小于 L2，则接近 L2 访问延迟;依此类推。图中横坐 标为访问的字节数，纵坐标为访存的拍数(cycles)。
-
-![image-20220221113929547](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/不同CPU性能大PK/image-20220221113929547.png)
-
-基于跳步访问的 3A5000 和 Zen1、Skylake 各级延迟的比较(cycles)
-
-![image-20220221112527936](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/不同CPU性能大PK/image-20220221112527936.png)
-
-下图给出了 LMbench 测试得到的访存操作的并发性，执行的命令为./par_mem。访存操作的并 发性是各级 Cache 和内存所支持并发访问的能力。在 LMbench 中，访存操作并发性的测试是设计一 个链表，不断地遍历访问下一个链表中的元素，链表所跳的距离和需要测量的 Cache 容量相关，在 一段时间能并发的发起对链表的追逐操作，也就是同时很多链表在遍历，如果发现这一段时间内 能同时完成 N 个链表的追逐操作，就认为访存的并发操作是 N。
-
-![image-20220221112727377](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/不同CPU性能大PK/image-20220221112727377.png)
-
-下图列出了三款处理器的功能部件操作延迟数据，使用的命令是./lat_ops。
-
-![image-20220221112853404](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/不同CPU性能大PK/image-20220221112853404.png)
-
-#### 龙芯stream数据
-
-LMbench 包含了 STREAM 带宽测试工具，可以用来测试可持续的内存访问带宽情况。图表12.25列 出了三款处理器的 STREAM 带宽数据，其中 STREAM 数组大小设置为 1 亿个元素，采用 OpenMP 版本 同时运行四个线程来测试满载带宽;相应测试平台均为 CPU 的两个内存控制器各接一根内存条， 3A5000 和 Zen1 用 DDR4 3200 内存条，Skylake 用 DDR4 2400 内存条(它最高只支持这个规格)。
-
-![image-20220221113037332](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/不同CPU性能大PK/image-20220221113037332.png)
-
-从数据可以看到，虽然硬件上 3A5000 和 Zen1 都实现了 DDR4 3200，但 3A5000 的实测可持续带宽 还是有一定差距。用户程序看到的内存带宽不仅仅和内存的物理频率有关系，也和处理器内部的 各种访存队列、内存控制器的调度策略、预取器和内存时序参数设置等相关，需要进行更多分析 来定位具体的瓶颈点。像 STREAM 这样的软件测试工具，能够更好地反映某个子系统的综合能力， 因而被广泛采用。
-
-## 对比结论
-
-- AMD单核跑分数据比较好
-- MySQL 查询场景下Intel的性能好很多
-- xdb比社区版性能要好
-- MySQL8.0比5.7在多核锁竞争场景下性能要好
-- intel最好，AMD接近Intel，海光差的比较远但是又比鲲鹏好很多，飞腾最差，尤其是跨socket简直是灾难
-- 麒麟OS性能也比CentOS略差一些
+-   AMD单核跑分数据比较好
+-   MySQL 查询场景下Intel的性能好很多
+-   xdb比社区版性能要好
+-   MySQL8.0比5.7在多核锁竞争场景下性能要好
+-   intel最好，AMD接近Intel，海光差的比较远但是又比鲲鹏好很多，飞腾最差，尤其是跨socket简直是灾难
+-   麒麟OS性能也比CentOS略差一些
 
 整体来说AMD用领先了一代的工艺（7nm VS 14nm)，在MySQL查询场景中终于可以接近Intel了，但是海光、鲲鹏、飞腾还是不给力。
 
 ## 参考资料
 
-[CPU的制造和概念](/2021/06/01/CPU%E7%9A%84%E5%88%B6%E9%80%A0%E5%92%8C%E6%A6%82%E5%BF%B5/)
-
-[CPU 性能和Cache Line](/2021/05/16/CPU Cache Line 和性能/)
-
-[Perf IPC以及CPU性能](/2021/05/16/Perf IPC以及CPU利用率/)
-
-[Intel、海光、鲲鹏920、飞腾2500 CPU性能对比](/2021/06/18/%E5%87%A0%E6%AC%BECPU%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94/)
-
-[飞腾ARM芯片(FT2500)的性能测试](/2021/05/15/%E9%A3%9E%E8%85%BEARM%E8%8A%AF%E7%89%87(FT2500)%E7%9A%84%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/)
-
-[十年后数据库还是不敢拥抱NUMA？](/2021/05/14/%E5%8D%81%E5%B9%B4%E5%90%8E%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%98%E6%98%AF%E4%B8%8D%E6%95%A2%E6%8B%A5%E6%8A%B1NUMA/)
-
-[一次海光物理机资源竞争压测的记录](/2021/03/07/%E4%B8%80%E6%AC%A1%E6%B5%B7%E5%85%89%E7%89%A9%E7%90%86%E6%9C%BA%E8%B5%84%E6%BA%90%E7%AB%9E%E4%BA%89%E5%8E%8B%E6%B5%8B%E7%9A%84%E8%AE%B0%E5%BD%95/)
-
-[Intel PAUSE指令变化是如何影响自旋锁以及MySQL的性能的](/2019/12/16/Intel PAUSE指令变化是如何影响自旋锁以及MySQL的性能的/)
+[CPU的生产和概念](https://www.atatech.org/articles/211563)
+[CPU性能和CACHE](https://topic.atatech.org/articles/210128)
+[十年后数据库还是不敢拥抱NUMA](https://www.atatech.org/articles/205974)
+[一次海光X86物理机资源竞争压测的调优](https://www.atatech.org/articles/205002)
+[数据中心CPU探索和分析](https://www.atatech.org/articles/209957)
 
 [lmbench测试要考虑cache等](https://blog.csdn.net/xuanjian_bjtu/article/details/107178226)
 
+
+
 Reference:
+
