@@ -17,7 +17,7 @@
 
 #### 在客户端抓包如下：（33端口是服务端的sshd端口，10.16.11.108是客户端ip）
 
-![screenshot](http://img4.tbcdn.cn/L1/461/1/1d010b9937198aee9e798bb02913603874f19ddc)
+![image-20240506090810608](https://cdn.jsdelivr.net/gh/shareImage/image@_md2zhihu_blog_cee8f3b4/就是要你懂TCP--通过案例来学习MSS、MTU/5c8fe19e20ab1c95-image-20240506090810608.png)
 
 #### 从抓包中可以得到这样一些结论：
 
@@ -96,8 +96,6 @@ $sudo sysctl -a |grep -i pmtu
 net.ipv4.ip_forward_use_pmtu = 0
 net.ipv4.ip_no_pmtu_disc = 0 //默认似乎是没有启用PMTUD
 net.ipv4.route.min_pmtu = 552
-
-
 ```
 
 [IPv4规定路由器至少要能处理576bytes的包，Ethernet规定的是1500 bytes，所以一般都是假设链路上MTU不小于1500](https://medium.com/@fcamel/tcp-maximum-segment-size-%E6%98%AF%E4%BB%80%E9%BA%BC%E4%BB%A5%E5%8F%8A%E6%98%AF%E5%A6%82%E4%BD%95%E6%B1%BA%E5%AE%9A%E7%9A%84-b5fd9005702e)
@@ -142,14 +140,20 @@ Q: 到哪里可以设置MSS
 A: 网卡配置--ifconfig；ip route在路由上指定；iptables中限制
 
 > # Add rules
+> 
 > $ sudo iptables -I OUTPUT -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 48
+> 
 > # delete rules
+> 
 > $ sudo iptables -D OUTPUT -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 48
 > 
 > # show router information
+> 
 > <img src="https://www.zhihu.com/equation?tex=%20route%20-ne" alt=" route -ne" class="ee_img tr_noresize" eeimg="1"> ip route show
 > 192.168.11.0/24 dev ens33 proto kernel scope link src 192.168.11.111 metric 100
+> 
 > # modify route table
+> 
 > $ sudo ip route change 192.168.11.0/24 dev ens33 proto kernel scope link src 192.168.11.111 metric 100 advmss 48
 
 
